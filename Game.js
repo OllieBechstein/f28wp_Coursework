@@ -1,3 +1,15 @@
+class Player {
+  constructor(x, y, r, vel, col){
+      this.x = x
+      this.y = y
+      this.r = r
+      this.vel = vel
+      this.col = col
+      this.mass = r * r * Math.PI
+      this.rot = 1
+      this.ang = -1
+  }
+}
 
 var canvas = document.getElementById("gameCanvas")
 var ctx = canvas.getContext("2d")
@@ -14,35 +26,44 @@ var offsetX = 0
 var offsetY = 0
 var scale = 1
 
-var playerVel = 1
-var playerRotate = 1
-var playerAngle = 0
-var playerRad = 32
+var players = []
+var client
 var playerStartRad = 32
-var playerMass
 
-function setup() {
+function createWorld() {
   for (var i = 0; i < 100000; i++) {
     var x = random(-20000, 20000)
     var y = random(-20000, 20000)
-    food[i] = new Food(x, y, 16)
+    food[i] = new Food(x, y, 16, '#ff0000')
   }
-  playerMass = Math.PI * playerRad * playerRad
   ctx.canvas.width  = width;
   ctx.canvas.height = height;
+  createPlayer();
+}
+
+function createPlayer(){
+  client = new Player(0,0,playerStartRad,1,'#00A500')
+  players[0] = client
+  client.mass = Math.PI * client.r * client.r
+}
+
+function addPlayer(){
+  players.push(new Player(0,0,playerStartRad,1,'#00A500'))
+  players[players.length-1].mass = Math.PI * players[players.length-1].r * players[players.length-1].r
 }
 
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   
-  for (var i = food.length - 1; i >= 0; i--) {
+  for (var i = 0; i < food.length; i++) {
     if (food[i].x + offsetX >= 0 - foodRad && food[i].x + offsetX <= width + foodRad){
       if (food[i].y + offsetY >= 0 - foodRad && food[i].y + offsetY <= height + foodRad){
         collision(food[i])
 
         ctx.beginPath()
-        ctx.arc(food[i].x + offsetX, food[i].y + offsetY, foodRad, 0, 2 * Math.PI)
+        ctx.arc(food[i].x + offsetX, food[i].y + offsetY, foodRad, 0, 2 * Math.PI)  
+        ctx.fillStyle = food[i].col;
         ctx.fill()
         ctx.closePath()
       }
@@ -50,9 +71,18 @@ function draw() {
 
   }
   ctx.beginPath()
-  ctx.arc(width/2,height / 2, playerRad, 0, 2 * Math.PI)
+  ctx.arc(width/2,height / 2, client.r, 0, 2 * Math.PI)
+  ctx.fillStyle = '#00A500';
   ctx.fill()
   ctx.closePath()
+
+  for(var i = 1; i < players.length; i++){
+    ctx.beginPath()
+    ctx.arc(players[i].x+offsetX,players[i].y+offsetY, players[i].r, 0, 2 * Math.PI)
+    ctx.fillStyle = '#00A500';
+    ctx.fill()
+    ctx.closePath()
+  }
 
 }
 
@@ -60,23 +90,25 @@ setInterval(update, 16);
 function update(){
   keyInput()
 
-  playerRad = Math.sqrt(playerMass / Math.PI)
+  client.r = Math.sqrt(client.mass / Math.PI)
 
-  scale = playerStartRad/(playerRad)
+  scale = playerStartRad/(client.r)
 
-  playerAngle += playerRotate * Math.PI / 180
-  offsetX += playerVel * Math.sin(playerAngle)
-  offsetY += playerVel * Math.cos(playerAngle)
+  client.ang += client.rot * Math.PI / 180
+  client.x += client.vel * Math.sin(client.ang)
+  client.y += client.vel * Math.cos(client.ang)
+  offsetX = client.x
+  offsetY = client.y
 
-  if(playerVel > 1){
-    playerVel *= 0.98
-  } else playerVel = 1
+  if(client.vel > 1){
+    client.vel *= 0.98
+  } else client.vel = 1
 
   if(food.length < 100000) {
     for(var i = food.length; i < 100000; i++){
       var x = random(-20000, 20000)
       var y = random(-20000, 20000)
-      food[food.length] = new Food(x, y, 16)
+      food[food.length] = new Food(x, y, 16, '#ff0000')
     }
   }
 }
@@ -87,15 +119,17 @@ function keyInput(){
   document.addEventListener('keydown', function(event) {
     event.preventDefault()
     if(event.key === 'd') {
-      playerRotate = -1
+      client.rot = -1
     } else if(event.key === 'a') {
-      playerRotate = 1
+      client.rot = 1
     }
-    if (playerMass > 3000){
-      if (event.key === ' '){
+    if (event.key === ' '){
+      if (client.mass > 3000){
         if(!boostToggled){
-          playerVel += 7
-          playerMass -= playerMass/4
+          addPlayer()
+          alert(players.length)
+          client.vel += 7
+          client.mass -= client.mass/4
           boostToggled = true
         }
       }
@@ -112,7 +146,7 @@ function keyInput(){
 
 function loop(timestamp) {
   if(first){  
-    setup()
+    createWorld()
     first = false
   }
 
@@ -130,10 +164,10 @@ function random(min, max) {
 
 function collision(currentFood) {
   var dist = Math.sqrt((currentFood.x+offsetX - width/2)*(currentFood.x+offsetX - width/2) + (currentFood.y+offsetY - height/2)*(currentFood.y+offsetY - height/2))
-  if(dist < playerRad+foodRad){
+  if(dist < client.r+foodRad){
     var i = food.indexOf(currentFood)
     food.splice(i, 1)
-    playerMass += foodMass
+    client.mass += foodMass
   }
 }
 
@@ -149,6 +183,7 @@ function generateScreen() {
   for (var i = 0; i < 140; i++) {
     // creates a table row
     var row = document.createElement("tr");
+    //Styling
     row.style.letterSpacing = "-4px";
     row.style.borderSpacing = "-4px";
     row.style.lineHeight = "0"
@@ -175,3 +210,4 @@ function generateScreen() {
   // sets the border attribute of tbl to 0;
   tbl.setAttribute("border", "0");
 }
+
