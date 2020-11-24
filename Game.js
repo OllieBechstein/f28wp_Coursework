@@ -127,8 +127,8 @@ function updateClient(){
     $(".player").css("width", (client.r*2).toString()+"px");
     $(".player").css("height", (client.r*2).toString()+"px");
     //Readjust the players position to make sure it is still centered
-    $(".player").css("margin-left", (width/2- client.r + 10).toString()+"px");
-    $(".player").css("margin-top", (height/2- client.r + 10).toString()+"px");
+    $(".player").css("margin-left", (width/2- client.r + 16).toString()+"px");
+    $(".player").css("margin-top", (height/2- client.r + 16).toString()+"px");
     //Adjust the viewport scale
     scale = playerStartRad/(client.r)
   }
@@ -153,7 +153,7 @@ function updateClient(){
   //TODO
   if(players.length > 1){
     for(var i = 1; i < players.length; i++){
-
+      
     }
   }
 }

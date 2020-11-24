@@ -1,4 +1,4 @@
-Authors: Louis Braidwood, Tom Mitchell, Ollie
+Authors: Louis Braidwood, Tom Mitchell, Ollie Bechstein
 
 Description: 
     Ski.io is an online multiplayer game where the objective is to 
