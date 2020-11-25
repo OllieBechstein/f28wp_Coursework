@@ -18,6 +18,18 @@ body{
     
 }
 
+.otherPlayer {
+    background: blue;
+    border-radius: 50%;
+    width: 100px;
+    height: 100px;
+    padding: 0px;
+    margin: 0px;
+    display: inline-block;
+    position: absolute;
+    
+}
+
 .food {
     background: red;
     border-radius: 50%;

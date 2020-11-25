@@ -1,12 +1,13 @@
-
 //Class for storing data about each player
 class Player {
   //constructor takes in their x and y position, the radius of the player
-  constructor(x, y, r){
+  constructor(x, y, r, id){
     //Set the classes x, y and radius to the values taken in from the constructor
     this.x = x
     this.y = y
     this.r = r
+    //Set a unique ID to be recognised by the server
+    this.id = id
     //Set the default velocity of the player and the current velocity (upon creation these are the same)
     this.defaultVel = 4
     this.vel = this.defaultVel
@@ -32,6 +33,7 @@ class Food {
 
 //Create an array to be used to store food objects
 var food = []
+var foodOBJs = []
 //The radius of each food object
 const foodRad = 12
 //The mass of each food object (PI*r^2)
@@ -57,6 +59,7 @@ var scale = 1
 
 //Creates an array to store each player on the server
 var players = []
+var playerOBJs = []
 //Used to hold and update the client player
 var client
 //The starting radius of each player
@@ -64,19 +67,16 @@ const playerStartRad = 32
 //The mass the player must be greater than to be able to use the boost mechanic
 const boostThreshold = 3000
 
-//Run when starting the server to set up the world
-function startServer() {
+//Start the game for a player
+function startClient(){
   //Loop for each piece of food that should be in the game
-  for (var i = 0; i < totalFood; i++) {
+  for (var i = 0; i < 4000; i++) {
+    food.push(new Food(foodOBJs[i].x, foodOBJs[i].y, foodRad))
     //Create an element in the body of the HTML code to represent this piece of food, with a unique ID
     $("body").append("<h2 class=food id=" + i.toString() + "></h2>")
     //Hide this element, using the unique ID
     $("#"+i.toString()).hide()
   }
-}
-
-//Start the game for a player
-function startClient(){
   //Set the width and height to the width and height of the window
   width = $(window).width();
   height = $(window).height();
@@ -84,51 +84,49 @@ function startClient(){
   createPlayer();
 }
 
-//Add food to the game
-function addFood(){
-  //Set a random value for the foods x and y, within the world size
-  var x = random(-worldSize, worldSize)
-  var y = random(-worldSize, worldSize)
-  //Add a new food to the array of food, using the random x and y, as well as the food radius
-  food[food.length-1] = new Food(x, y, foodRad, '#ff0000')
-}
-
 //Create the client player
 function createPlayer(){
   //Add a new element to the body to represent the player
-  $("body").append("<h1 class=player></h1>")
+  $("body").append("<h1 class=player id=" + players.length + "></h1>")
   //Set the client to be a new player at the center of the world (0, 0) with the default radius
-  client = new Player(0,0,playerStartRad)
+  client = new Player(0,0,playerStartRad, players.length)
   //Add the client to the list of players, at the end of the list
   players[players.length] = client
   //Use the css margins to control the position on the screen of the player (These values place the player in the center of the game viewport)
-  $(".player").css("margin-left", (width/2-client.r + 10).toString()+"px");
-  $(".player").css("margin-top", (height/2-client.r + 10).toString()+"px");
+  $(".player,#" + client.id).css("margin-left", (width/2-client.r + 10).toString()+"px");
+  $(".player,#" + client.id).css("margin-top", (height/2-client.r + 10).toString()+"px");
 }
 
 //Add a player to the server on the clients side
 function addPlayer(){
   //Push the new player to the array in the center of the world (0, 0) with the default radius
-  players.push(new Player(0,0,playerStartRad))
+  $("body").append("<h1 class=player id=" + players.length + "></h1>")
+  players.push(new Player(0,0,playerStartRad, players.length))
 }
 
 //Set the interval of the update function to run every 16ms (approx. 60 times per second)
 setInterval(updateClient, 16);
 //Update function 
 function updateClient(){
+  //If the game has just been launched (if its the first frame)
+  if(first){  
+    //Start the client
+    startClient()
+    //Once this has happened it is no longer the first frame, dont run it again
+    first = false
+  }
   //Handle key input from the client
   keyInput()
-
   //If the clients radius is not accurate (based off of its current mass)
   if(client.r != Math.sqrt(client.mass / Math.PI)){
     //Set it to be the correct value using a formula derived from the radius formula
     client.r = Math.sqrt(client.mass / Math.PI)
     //Set the new size of the player, using the new radius
-    $(".player").css("width", (client.r*2).toString()+"px");
-    $(".player").css("height", (client.r*2).toString()+"px");
+    $(".player,#" + client.id).css("width", (client.r*2).toString()+"px");
+    $(".player,#" + client.id).css("height", (client.r*2).toString()+"px");
     //Readjust the players position to make sure it is still centered
-    $(".player").css("margin-left", (width/2- client.r + 16).toString()+"px");
-    $(".player").css("margin-top", (height/2- client.r + 16).toString()+"px");
+    $(".player,#" + client.id).css("margin-left", (width/2- client.r + 16).toString()+"px");
+    $(".player,#" + client.id).css("margin-top", (height/2- client.r + 16).toString()+"px");
     //Adjust the viewport scale
     scale = playerStartRad/(client.r)
   }
@@ -150,34 +148,8 @@ function updateClient(){
   //Otherwise make sure the clients velocity is set to the default (not below, as sometimes the above code will make it lower than it should be)
   } else client.vel = client.defaultVel
   
-  //TODO
-  if(players.length > 1){
-    for(var i = 1; i < players.length; i++){
-      
-    }
-  }
+  
 }
-
-//Set the interval of the updatServer function to run every 16ms (approx. 60 times per second)
-setInterval(updateServer, 16);
-function updateServer() {
-  //If the food array is smaller than it should be 
-  if(food.length < totalFood) {
-    //Loop 100 times (This value isn't too important, it just makes food generate at a reasonable speed)
-    for(var i = 0; i < 100; i++){
-      //If the array is still smaller than it should be (if the array is only 1 smaller than it should be, the loop shouldn't run 100 times)
-      if(food.length < totalFood) {
-        //Create new random x and y values for the food
-        var x = random(-worldSize, worldSize)
-        var y = random(-worldSize, worldSize)
-        //Add a new food at the end of the array, using the new x and y values
-        food[food.length] = new Food(x, y, foodRad)
-      //If the array is now the right size (or theoretically larger, but this will never happen), break out of the loop
-      } else break;
-    }
-  }
-}
-
 //Draw the game to the clients screen
 function draw(){
   //Loop through all the food in the food array
@@ -203,7 +175,9 @@ function draw(){
     } else if (food[i].x + offsetX >= -100 - foodRad && food[i].x + offsetX <= width+100 + foodRad){
         $("#"+iString).hide()
     }
-
+  }
+  for(var i = 0; i < playerOBJs.length; i++){
+    
   }
 }
 
@@ -245,14 +219,7 @@ function keyInput(){
 
 //GAME LOOP
 function loop(timestamp) {
-  //If the game has just been launched (if its the first frame)
-  if(first){  
-    //Start the client and the server
-    startServer()
-    startClient()
-    //Once this has happened it is no longer the first frame, dont run it again
-    first = false
-  }
+  
 
   //Draw the game
   draw()
@@ -287,3 +254,46 @@ function collision(currentFood) {
     client.mass += foodMass
   }
 }
+
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "../food.json", false);
+  xhr.onload = ajaxCallback; 
+  xhr.send(); 
+  function ajaxCallback(event){ 
+    foodOBJs = JSON.parse(event.target.responseText)
+  }
+
+//format for sent data {id: 0, x: 0, y: 0, r: 0}
+// socket.io connection setup
+const socket = io(`ws://${window.location.host}`);
+const connectedPromise = new Promise(resolve => {
+    socket.on('connect', () => {
+        console.log('Connected to server!');
+        resolve();
+    });
+});
+
+// Your socket id
+socket.on('player-number', num => {
+    console.log(`your socket id is ${num}`);
+})
+
+//Set the interval of the updateServer function to run every 16ms (approx. 60 times per second)
+setInterval(updateServer, 16);
+function updateServer() {
+  //sendPosition to server
+  socket.emit('updatePlayer', {id: client.id, x: client.x, y: client.y, r: client.r});
+  //Recieve position from server
+  socket.on('updatePlayer', ({id, x, y, r}) => {
+    console.log('lolxd')
+    players[id].x = x
+    players[id].y = y
+    players[id].r = r
+  })
+}
+
+
+
+
+
