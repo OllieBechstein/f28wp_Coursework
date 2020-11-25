@@ -3,9 +3,10 @@ Authors: Louis Braidwood, Tom Mitchell, Ollie Bechstein
 Description: 
     Ski.io is an online multiplayer game where the objective is to 
     move (skii) around the level, collecting balls of mass, making you bigger as 
-    you go. You can also boost, to lose a percentage of your mass, and gain a 
-    significant speed boost. If you are larger than other players you can eat them,
-    adding their mass to your own.
+    you go.. You cant stop moving and are always going slightly left or right. 
+    You can also boost, to lose a percentage of your mass, and gain a significant 
+    speed boost. If you are larger than other players you can eat them, adding 
+    their mass to your own.
 
 Controls: 
     A - Move left

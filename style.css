@@ -30,3 +30,23 @@ body{
     display: inline-block;
     
 }
+
+.arrow {
+    border: solid black;
+  border-width: 0 3px 3px 0;
+  display: inline-block;
+  padding: 3px;
+}
+
+.mass {
+    color: white;
+    padding: 0px;
+    margin: 0px;
+    position: absolute;
+    display: inline-block;
+}
+
+.deathScreen {
+    width: 200px;
+    height: 200px;
+}
