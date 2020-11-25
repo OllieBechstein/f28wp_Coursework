@@ -18,6 +18,7 @@ class Player {
     //Create a variable to store the actual angle the player is facing (Using radians/degrees)
     this.ang = -1
     this.boostToggled = false
+    this.removed = false
   }
 }
 
@@ -61,7 +62,6 @@ var scale = 1
 
 //Creates an array to store each player on the server
 var players = []
-var playerOBJs = []
 //Used to hold and update the client player
 var client
 //The starting radius of each player
@@ -102,10 +102,16 @@ function startClient(){
 
 //Create the client player
 function createPlayer(){
-  //Add a new element to the body to represent the player
-  $("body").append("<h1 class=player id=" + players.length + "></h1>")
   //Set the client to be a new player at the center of the world (0, 0) with the default radius
   client = new Player(0,0,playerStartRad, players.length)
+  $("body").append("<p class=mass>Current Mass</p>")
+  $(".mass").css("margin-left", (32).toString()+"px")
+  $(".mass").css("margin-top", (32).toString()+"px")
+  $(".mass").show()
+
+  $("body").append("<h1 class=player id=" + client.id.toString() + "></h1>")
+  //Hide this element, using the unique ID
+  $(".player,#"+client.id.toString()).hide()
   //Add the client to the list of players, at the end of the list
   players[client.id] = client
 
@@ -121,44 +127,39 @@ function updateClient(){
     startClient()
     //Once this has happened it is no longer the first frame, dont run it again
   } else if(wait > waitTime){
-    //Handle key input from the client
-    keyInput()
-    //If the clients radius is not accurate (based off of its current mass)
-    if(client.r != Math.sqrt(client.mass / Math.PI)){
-      //Set it to be the correct value using a formula derived from the radius formula
-      client.r = Math.sqrt(client.mass / Math.PI)
-      //Set the new size of the player, using the new radius
-      $(".player,#" + client.id).css("width", (client.r*2).toString()+"px");
-      $(".player,#" + client.id).css("height", (client.r*2).toString()+"px");
-      //Readjust the players position to make sure it is still centered
-      $(".player,#" + client.id).css("margin-left", (width/2- client.r + 16).toString()+"px");
-      $(".player,#" + client.id).css("margin-top", (height/2- client.r + 16).toString()+"px");
-      //Adjust the viewport scale
-      scale = playerStartRad/(client.r)
-    }
-    //HANDLE MOVEMENT
-    //The angle of the players movement can be derived from the direction it moves in
-    client.ang += client.dir * Math.PI / 180
-    //Update the x position using a sine graph and y position using a cosine graph (multiplying by velocity)
-    client.x += client.vel * Math.sin(client.ang)
-    client.y += client.vel * Math.cos(client.ang)
-    //Set the screens offset to be equal to the clients position so that the correct part of the level is in the viewport
-    offsetX = client.x
-    offsetY = client.y
+    if(!client.removed){
+      //Handle key input from the client
+      keyInput()
+      //If the clients radius is not accurate (based off of its current mass)
+      if(client.r != Math.sqrt(client.mass / Math.PI)){
+        //Set it to be the correct value using a formula derived from the radius formula
+        client.r = Math.sqrt(client.mass / Math.PI)
+        //Adjust the viewport scale
+        scale = playerStartRad/(client.r)
+      }
+      //HANDLE MOVEMENT
+      //The angle of the players movement can be derived from the direction it moves in
+      client.ang += client.dir * Math.PI / 180
+      //Update the x position using a sine graph and y position using a cosine graph (multiplying by velocity)
+      client.x += client.vel * Math.sin(client.ang)
+      client.y += client.vel * Math.cos(client.ang)
+      //Set the screens offset to be equal to the clients position so that the correct part of the level is in the viewport
 
-    //If the client is going above the default speed (using boost)
-    if(client.vel > client.defaultVel){
-      //Decrease the players speed by 0.02x its total
-      client.vel *= 0.98
-    //Otherwise make sure the clients velocity is set to the default (not below, as sometimes the above code will make it lower than it should be)
-    } else client.vel = client.defaultVel
-    
+      //If the client is going above the default speed (using boost)
+      if(client.vel > client.defaultVel){
+        //Decrease the players speed by 0.02x its total
+        client.vel *= 0.98
+      //Otherwise make sure the clients velocity is set to the default (not below, as sometimes the above code will make it lower than it should be)
+      } else client.vel = client.defaultVel
+    }
   }
   wait++
 }
 //Draw the game to the clients screen
 function draw(){
   if(wait > waitTime){ 
+    offsetX = -client.x + width/2
+    offsetY = -client.y + height/2
     //Loop through all the food in the food array
     for (var i = 0; i < food.length; i++) {
       //Check to see if the food is within the viewport of the game
@@ -185,42 +186,69 @@ function draw(){
       }
     }
     for(var i = 0; i < players.length; i++){
-      //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
-      $(".player,#"+i).css("margin-left", (players[i].x + offsetX).toString()+"px");
-      $(".player,#"+i).css("margin-top", (players[i].y + offsetY).toString()+"px");
-      $(".player,#"+i).css("width", (players[i].r*2).toString()+"px");
-      $(".player,#"+i).css("height", (players[i].r*2).toString()+"px");
-      //Show the player
-      $(".player,#"+i).show()
+      if(!players[i].removed){
+        //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
+        $(".player,#"+i).css("margin-left", (players[i].x + offsetX - players[i].r).toString()+"px");
+        $(".player,#"+i).css("margin-top", (players[i].y + offsetY - players[i].r).toString()+"px");
+        $(".player,#"+i).css("width", (players[i].r*2).toString()+"px");
+        $(".player,#"+i).css("height", (players[i].r*2).toString()+"px");
+        $(".player,#"+i).css("background-color", "darkblue")
+        //Show the player
+        $(".player,#"+i).show()
+      } else {
+        $(".player,#"+i).hide()
+      }
+    }
+
+    if(client.removed){
+      displayDead()
+    } else {
+      hideDead()
+      $(".mass").text("Current Mass: " + Math.round(client.mass/100));
     }
   }
 }
 
+function buildDead(){
+
+}
+
+function displayDead(){
+
+}
+
+function hideDead(){
+
+}
+
 //Handle input from the clients keyboard
 function keyInput(){
-  //Check for a key being pressed down
-  document.addEventListener('keydown', function(event) {
-    //If d is pressed
-    if(event.key === 'd') {
-      //Set the direction to -defaultVel, (Move right at the default velocity)
-      client.dir = -client.defaultVel
-    //If a is pressed
-    } else if(event.key === 'a') {
-      //Set the direction to defaultVel, (Move left at the default velocity)
-      client.dir = client.defaultVel
-    }
-    //If space is being pressed
-    if (event.key === ' '){
-      //If the mass of the client is greater than the boost threshold
-      if (client.mass > boostThreshold){
-        if(!client.boostToggled){
-          client.vel += 12
-          client.mass -= client.mass/4
-          client.boostToggled = true
+  if(!client.removed){
+    //Check for a key being pressed down
+    document.addEventListener('keydown', function(event) {
+      //If d is pressed
+      if(event.key === 'd') {
+        //Set the direction to -defaultVel, (Move right at the default velocity)
+        client.dir = -client.defaultVel
+      //If a is pressed
+      } else if(event.key === 'a') {
+        //Set the direction to defaultVel, (Move left at the default velocity)
+        client.dir = client.defaultVel
+      }
+      //If space is being pressed
+      if (event.key === ' '){
+        //If the mass of the client is greater than the boost threshold
+        if (client.mass > boostThreshold){
+          if(!client.boostToggled){
+            client.vel += 12
+            client.mass -= client.mass/4
+            client.boostToggled = true
+          }
         }
       }
-    }
-  })
+    })
+  } else {
+  }
   //Check for a key being released
   document.addEventListener('keyup', function(event) {
     //If space has been released
@@ -229,7 +257,6 @@ function keyInput(){
       client.boostToggled = false
     }
   })
-
 }
 
 //GAME LOOP
@@ -254,20 +281,24 @@ function random(min, max) {
 //HANDLE COLLISION
 //Pass in the food you want to check
 function collision(currentFood) {
-  //Use distance formula to see how far away the player is from the food
-  var dist = Math.sqrt((currentFood.x+offsetX - width/2)*(currentFood.x+offsetX - width/2) + (currentFood.y+offsetY - height/2)*(currentFood.y+offsetY - height/2))
-  //If the food is within the radius of the player
-  if(dist < client.r+foodRad){
-    //Get the index of this piece of food in the array
-    var i = food.indexOf(currentFood)
-    //Set new x and y 
-    socket.emit('eaten', i);
-    food[i].removed = true
-    //Add the mass of this piece of food to the clients mass
-    client.mass += foodMass
+  if(!client.removed){
+    //Use distance formula to see how far away the player is from the food
+    var dist = Math.sqrt((currentFood.x - (client.x - 16))*(currentFood.x - (client.x - 16)) + (currentFood.y-(client.y - 16))*(currentFood.y-(client.y - 16)))
+    //If the food is within the radius of the player
+    if(dist < client.r + foodRad){
+      //Get the index of this piece of food in the array
+      var i = food.indexOf(currentFood)
+      //Set new x and y 
+      socket.emit('eaten', i);
+      food[i].removed = true
+      //Add the mass of this piece of food to the clients mass
+      client.mass += foodMass
+    }
   }
 }
   
+
+
 const io = require('socket.io-client');
 
 //format for sent data {id: 0, x: 0, y: 0, r: 0}
@@ -296,12 +327,19 @@ function updateServer() {
 }
 
 socket.on('levelData', (foo, pla) => {
-  console.log('lolxd')
   for(var i = 0; i < totalFood; i++){
     food.push(new Food(foo[i].x, foo[i].y, foodRad))
   }
   for(var i in pla){
     players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id)
+  }
+})
+
+socket.on('playerRemoved', (id) => {
+  players[id].removed = true
+  if(id == client.id){
+    console.log('REMOVED FROM GAME')
+    client.removed = true
   }
 })
 
@@ -312,13 +350,16 @@ socket.on('playerData', (dat) => {
       players[i].x = dat.x
       players[i].y = dat.y
       players[i].r = dat.r
+      players[i].removed = dat.removed
+      players[i].mass = dat.r*dat.r*Math.PI
       found = true
     }
   }
 
   if(!found){
     players.push(new Player(dat.x, dat.y, dat.r, dat.id))
-    $("body").append("<h1 class=player id=" + players.length + "></h1>")
+    $("body").append("<h1 class=player id=" + players.length-1 + "></h1>")
+    $(".player,#"+(players.length-1).toString()).hide()
   }
 })
 
