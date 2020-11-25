@@ -1,4 +1,5 @@
 body{
+    background: rgb(10, 10, 10);
     overflow: hidden;
     padding: 0px;
     margin: 0px;
@@ -7,19 +8,7 @@ body{
 }
 
 .player {
-    background: blue;
-    border-radius: 50%;
-    width: 100px;
-    height: 100px;
-    padding: 0px;
-    margin: 0px;
-    display: inline-block;
-    position: absolute;
-    
-}
-
-.otherPlayer {
-    background: blue;
+    background: darkblue;
     border-radius: 50%;
     width: 100px;
     height: 100px;
@@ -31,7 +20,7 @@ body{
 }
 
 .food {
-    background: red;
+    background: darkred;
     border-radius: 50%;
     width: 32px;
     height: 32px;
