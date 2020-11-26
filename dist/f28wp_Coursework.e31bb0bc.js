@@ -8862,7 +8862,7 @@ var width = 1920;
 var height = 1080; //A value used to check if the game is on its first frame
 
 var first = true;
-var playerName = "NO NAME"; //Used for positioning the camera (offsetting the x and y of the world)
+var playerName = 'helo'; //Used for positioning the camera (offsetting the x and y of the world)
 
 var offsetX = 0;
 var offsetY = 0;
@@ -8909,14 +8909,15 @@ function startClient() {
   } //Loop for each player that should be in the game
 
 
-  for (var i = 1; i < players.length; i++) {
+  for (var i = 0; i < players.length; i++) {
     //Create an element in the body of the HTML code to represent other players, with a unique id
-    $("body").append("<div class=player id=" + players[i].id.toString() + "></div>");
-    $(".player,#" + players.length - 1).append("<p class=player id=" + players[i].id.toString() + ">" + players[i].name + "</p>"); //Hide this element, using the unique ID
+    $("body").append("<div class=player id=" + players[i].id + "></div>");
+    $(".player,#" + players[i].id).append("<p>" + players[i].name + "</p>"); //Hide this element, using the unique ID
 
     $(".player,#" + i.toString()).hide();
-  } //Set the width and height to the width and height of the window
+  }
 
+  console.log(playerName); //Set the width and height to the width and height of the window
 
   width = $(window).width();
   height = $(window).height(); //Create the screen to be shown when the player dies
@@ -8932,10 +8933,10 @@ function createPlayer() {
   client = new Player(playerName, 0, 0, playerStartRad, players.length);
   $("body").append("<p class=mass>Current Mass</p>");
   $(".mass").show();
-  $("body").append("<div class=player id=" + client.id.toString() + "></div>");
-  $(".player,#" + client.id).append("<p>" + client.name + "</p>"); //Hide this element, using the unique ID
+  $("body").append("<div class=player id=" + client.id + "></div>");
+  $(".player,#" + client.id).append("<p>" + playerName + "</p>"); //Hide this element, using the unique ID
 
-  $(".player,#" + client.id.toString()).hide(); //Add the client to the list of players, at the end of the list
+  $(".player,#" + client.id).hide(); //Add the client to the list of players, at the end of the list
 
   players[client.id] = client;
 } //Set the interval of the update function to run every 16ms (approx. 60 times per second)
@@ -8947,7 +8948,8 @@ function updateClient() {
   //If the game has just been launched (if its the first frame)
   if (wait == waitTime) {
     //Start the client
-    startClient(); //Once this has happened it is no longer the first frame, dont run it again
+    startClient();
+    wait++; //Once this has happened it is no longer the first frame, dont run it again
   } else if (wait > waitTime) {
     if (!client.removed) {
       //Handle key input from the client
@@ -8973,12 +8975,11 @@ function updateClient() {
     }
   }
 
-  if (started) {
+  if (started && wait < waitTime) {
     wait++;
   } else {
     if (wait == 0) {
       var startGame = function startGame() {
-        playerName = $("#inputName").val();
         $("#loginBox").remove();
         $("#welcome").remove();
         $("#enterName").remove();
@@ -8986,10 +8987,9 @@ function updateClient() {
         started = true;
       };
 
-      $("#inputName").keypress(function (event) {
-        var keycode = event.keyCode ? event.keyCode : event.which;
-
-        if (keycode == "13") {
+      $(document).keydown(function (event) {
+        if (event.key == "Enter") {
+          playerName = document.getElementById("inputName").value;
           startGame();
         }
       });
@@ -9034,7 +9034,8 @@ function draw() {
       $(".player,#" + i).css("margin-top", (players[i].y + offsetY - players[i].r).toString() + "px");
       $(".player,#" + i).css("width", (players[i].r * 2).toString() + "px");
       $(".player,#" + i).css("height", (players[i].r * 2).toString() + "px");
-      $(".player,#" + i).css("background-color", "darkblue"); //Show the player if its in the game, otherwise remove it
+      $(".player,#" + i).css("background-color", "darkblue");
+      $("p,.player,#" + i).html(players[i].name).css("color", "white").css("text-align", "center"); //Show the player if its in the game, otherwise remove it
 
       if (players[i].removed) {
         $(".player,#" + i).hide();
@@ -9155,7 +9156,7 @@ setInterval(updateServer, 16);
 
 function updateServer() {
   //Send position to server
-  if (wait > waitTime + 10) {
+  if (wait > waitTime) {
     socket.emit('playerData', {
       name: client.name,
       id: client.id,
@@ -9174,7 +9175,6 @@ socket.on('levelData', function (foo, pla) {
   }
 
   for (var i in pla) {
-    console.log(pla[i].name);
     players[pla[i].id] = new Player(pla[i].name, pla[i].x, pla[i].y, pla[i].r, pla[i].id);
 
     if (pla[i].removed) {
@@ -9207,6 +9207,7 @@ socket.on('playerData', function (dat) {
       players[i].x = dat.x;
       players[i].y = dat.y;
       players[i].r = dat.r;
+      players[i].name = dat.name;
       players[i].removed = dat.removed;
       players[i].mass = dat.r * dat.r * Math.PI;
       found = true;
@@ -9215,9 +9216,8 @@ socket.on('playerData', function (dat) {
 
   if (!found) {
     players.push(new Player(dat.name, dat.x, dat.y, dat.r, dat.id));
-    $("body").append("<div class=player id=" + players.length - 1 + "></div>");
-    $(".player,#" + players.length - 1).append("<p class=player id=" + players.length - 1 + ">" + players[dat.id].name + "</p>");
-    $(".player,#" + (players.length - 1).toString()).hide();
+    $("body").append("<div class=player id=" + dat.id + "></div>");
+    $(".player,#" + dat.id).hide();
   }
 });
 socket.on('foodAdded', function (dat) {
@@ -9260,7 +9260,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58726" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64465" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

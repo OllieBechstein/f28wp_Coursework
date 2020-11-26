@@ -8,8 +8,19 @@ body{
     font-family: Arial, Helvetica, sans-serif;
 }
 
-p{
-    color:white;
+p {
+    color: white;
+    z-index: 100;
+}
+
+div {
+    z-index: 3;
+}
+
+div p {
+    margin-top: 105%;
+    text-align: center;
+    z-index: 100;
 }
 
 .player {
@@ -21,7 +32,7 @@ p{
     margin: 0px;
     display: inline-block;
     position: absolute;
-    z-index: 2;
+    z-index: 3;
 }
 
 .food {
