@@ -1,6 +1,7 @@
 const { Console } = require('console');
 const Bundler = require('parcel-bundler');
 const app = require('express')();
+const fs = require('fs')
 const server = require('http').createServer(app);
 const socketIO = require('socket.io');
 
@@ -56,7 +57,9 @@ io.on('connection', (socket) => {
             players[dat.id].x = dat.x
             players[dat.id].y = dat.y
             players[dat.id].r = dat.r
-            socket.broadcast.emit('playerData', {name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: players[dat.id].removed})
+            players[dat.id].name = dat.name
+            players[dat.id].removed = dat.removed
+            socket.broadcast.emit('playerData', {name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: dat.removed, socket: socket.id})
         } else {
             players.push({name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: dat.removed, socket: socket.id})
             socket.broadcast.emit('playerData', {name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id})
@@ -68,19 +71,21 @@ io.on('connection', (socket) => {
             for(var j = 0; j < players.length; j++){
                 if(players[i] != players[j] && (!players[i].removed || !players[j].removed)){
                     var dist = Math.sqrt((players[i].x - players[j].x)*(players[i].x - players[j].x) + (players[i].y-players[j].y)*(players[i].y-players[j].y))
-                  
+                    
                     if(dist < players[j].r - players[i].r + (players[j].r/10)){
                         if(players[j].r > players[i].r){
+                            socket.emit('playerRemoved', [i, j])
                             players[i].removed = true
                             players[i].x = -1000000
                             players[i].y = -1000000
-                            socket.emit('playerRemoved', (j, i))
+                            players[i].r = 0
+                            players[j].r += players[i].r
                         } else if(players[j].r < players[i].r){
+                            socket.emit('playerRemoved', [j, i])
                             players[j].removed = true
                             players[j].x = -1000000
                             players[j].y = -1000000
-                            socket.emit('playerRemoved', (i, j))
-                            players[j].vel = 0
+                            players[j].r = 0
                         }
                     }
                 }
@@ -92,7 +97,7 @@ io.on('connection', (socket) => {
         console.log(socket.id + ' left the server');
         for(var i = 0; i < players.length; i++){
             if(players[i].socket == socket.id){
-                players[i].removed = true
+                socket.emit('playerLeft', i)
             }
         }
     });

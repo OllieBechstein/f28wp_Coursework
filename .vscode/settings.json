@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/5e633733-9303-4160-856c-4fdf35e46b20/resourceGroups/f28wp_jimmy/providers/Microsoft.Web/sites/skiio",
+    "appService.deploySubpath": "."
+}

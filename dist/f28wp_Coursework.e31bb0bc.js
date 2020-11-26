@@ -8802,6 +8802,12 @@ Object.defineProperty(exports, "Manager", {
   }
 });
 },{"./url":"node_modules/socket.io-client/build/url.js","./manager":"node_modules/socket.io-client/build/manager.js","./socket":"node_modules/socket.io-client/build/socket.js","debug":"node_modules/socket.io-client/node_modules/debug/src/browser.js","socket.io-parser":"node_modules/socket.io-parser/dist/index.js"}],"index.js":[function(require,module,exports) {
+"use strict";
+
+var _socket = _interopRequireDefault(require("socket.io-client"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 //Class for storing data about each player
@@ -8856,7 +8862,7 @@ var width = 1920;
 var height = 1080; //A value used to check if the game is on its first frame
 
 var first = true;
-var playerName; //Used for positioning the camera (offsetting the x and y of the world)
+var playerName = "NO NAME"; //Used for positioning the camera (offsetting the x and y of the world)
 
 var offsetX = 0;
 var offsetY = 0;
@@ -8881,9 +8887,11 @@ var boostThreshold = 3000;
   }*/
 //Socket.io connection setup
 
-var io = require('socket.io-client');
+webPreferences: {
+  nodeIntegration: true;
+}
 
-var socket = io("ws://".concat(window.location.host));
+var socket = (0, _socket.default)("ws://".concat(window.location.host));
 var connectPromise = new Promise(function (resolve) {
   socket.on('connect', function () {
     console.log('Connected to server!');
@@ -8903,7 +8911,8 @@ function startClient() {
 
   for (var i = 1; i < players.length; i++) {
     //Create an element in the body of the HTML code to represent other players, with a unique id
-    $("body").append("<div class=player id=" + players[i].id.toString() + "></div>"); //Hide this element, using the unique ID
+    $("body").append("<div class=player id=" + players[i].id.toString() + "></div>");
+    $(".player,#" + players.length - 1).append("<p class=player id=" + players[i].id.toString() + ">" + players[i].name + "</p>"); //Hide this element, using the unique ID
 
     $(".player,#" + i.toString()).hide();
   } //Set the width and height to the width and height of the window
@@ -8923,7 +8932,8 @@ function createPlayer() {
   client = new Player(playerName, 0, 0, playerStartRad, players.length);
   $("body").append("<p class=mass>Current Mass</p>");
   $(".mass").show();
-  $("body").append("<div class=player id=" + client.id.toString() + "></div>"); //Hide this element, using the unique ID
+  $("body").append("<div class=player id=" + client.id.toString() + "></div>");
+  $(".player,#" + client.id).append("<p>" + client.name + "</p>"); //Hide this element, using the unique ID
 
   $(".player,#" + client.id.toString()).hide(); //Add the client to the list of players, at the end of the list
 
@@ -8945,9 +8955,7 @@ function updateClient() {
 
       if (client.r != Math.sqrt(client.mass / Math.PI)) {
         //Set it to be the correct value using a formula derived from the radius formula
-        client.r = Math.sqrt(client.mass / Math.PI); //Adjust the viewport scale
-
-        scale = playerStartRad / client.r;
+        client.r = Math.sqrt(client.mass / Math.PI);
       } //HANDLE MOVEMENT
       //The angle of the players movement can be derived from the direction it moves in
 
@@ -8970,7 +8978,7 @@ function updateClient() {
   } else {
     if (wait == 0) {
       var startGame = function startGame() {
-        playerName = $("#name").val();
+        playerName = $("#inputName").val();
         $("#loginBox").remove();
         $("#welcome").remove();
         $("#enterName").remove();
@@ -9017,33 +9025,26 @@ function draw() {
       } else {
         $("#" + i).hide();
       }
-    }
+    } //Loop through each player
+
 
     for (var i = 0; i < players.length; i++) {
-      if (!players[i].removed) {
-        //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
-        $(".player,#" + i).css("margin-left", (players[i].x + offsetX - players[i].r).toString() + "px");
-        $(".player,#" + i).css("margin-top", (players[i].y + offsetY - players[i].r).toString() + "px");
-        $(".player,#" + i).css("width", (players[i].r * 2).toString() + "px");
-        $(".player,#" + i).css("height", (players[i].r * 2).toString() + "px");
-        $(".player,#" + i).css("background-color", "darkblue"); //Show the player
+      //Move where each player being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
+      $(".player,#" + i).css("margin-left", (players[i].x + offsetX - players[i].r).toString() + "px");
+      $(".player,#" + i).css("margin-top", (players[i].y + offsetY - players[i].r).toString() + "px");
+      $(".player,#" + i).css("width", (players[i].r * 2).toString() + "px");
+      $(".player,#" + i).css("height", (players[i].r * 2).toString() + "px");
+      $(".player,#" + i).css("background-color", "darkblue"); //Show the player if its in the game, otherwise remove it
 
-        $(".player,#" + i).show();
-      } else {
+      if (players[i].removed) {
         $(".player,#" + i).hide();
+      } else {
+        $(".player,#" + i).show();
       }
     }
 
     if (client.removed) {
       displayDead();
-      document.addEventListener('keydown', function (event) {
-        //If space is being pressed
-        if (event.key === ' ') {
-          players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id);
-          client = players[client.id];
-          socket.emit('respawn', client.id);
-        }
-      });
     } else {
       hideDead();
       $(".mass").text("Current Mass: " + Math.round(client.mass / 100));
@@ -9071,9 +9072,9 @@ function hideDead() {
 
 
 function keyInput() {
-  if (!client.removed) {
-    //Check for a key being pressed down
-    document.addEventListener('keydown', function (event) {
+  document.addEventListener('keydown', function (event) {
+    if (!client.removed) {
+      //Check for a key being pressed down
       //If d is pressed
       if (event.key === 'd') {
         //Set the direction to -defaultVel, (Move right at the default velocity)
@@ -9094,9 +9095,16 @@ function keyInput() {
           }
         }
       }
-    });
-  } //Check for a key being released
-
+    } else {
+      //If space is being pressed
+      if (event.key === ' ') {
+        players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id);
+        client = players[client.id];
+        client.boostToggled = true;
+        socket.emit('respawn', client.id);
+      }
+    }
+  }); //Check for a key being released
 
   document.addEventListener('keyup', function (event) {
     //If space has been released
@@ -9140,24 +9148,21 @@ function collision(currentFood) {
       client.mass += foodMass;
     }
   }
-} // Your socket id
+} //Set the interval of the updateServer function to run every 16ms (approx. 60 times per second)
 
-
-socket.on('player-number', function (num) {
-  console.log("your socket id is ".concat(num));
-}); //Set the interval of the updateServer function to run every 16ms (approx. 60 times per second)
 
 setInterval(updateServer, 16);
 
 function updateServer() {
-  //sendPosition to server
+  //Send position to server
   if (wait > waitTime + 10) {
     socket.emit('playerData', {
       name: client.name,
       id: client.id,
       x: client.x,
       y: client.y,
-      r: client.r
+      r: client.r,
+      removed: client.removed
     });
     socket.emit('shouldRemove');
   }
@@ -9169,6 +9174,7 @@ socket.on('levelData', function (foo, pla) {
   }
 
   for (var i in pla) {
+    console.log(pla[i].name);
     players[pla[i].id] = new Player(pla[i].name, pla[i].x, pla[i].y, pla[i].r, pla[i].id);
 
     if (pla[i].removed) {
@@ -9176,15 +9182,22 @@ socket.on('levelData', function (foo, pla) {
     }
   }
 });
-socket.on('playerRemoved', function (removed, remover) {
-  players[removed].removed = true;
-  players[remover].r += players[removed].r;
+socket.on('playerRemoved', function (dat) {
+  console.log(client.mass);
 
-  if (removed == client.id) {
+  if (dat[0] == client.id) {
     client.removed = true;
-  } else if (remover == client.id) {
-    client.r += players[removed].r;
+  } else if (dat[1] == client.id) {
+    if (!players[dat[0].removed]) {
+      client.mass += players[dat[0]].r * players[dat[0]].r * Math.PI;
+      console.log(client.mass);
+    }
   }
+
+  players[dat[0]].removed = true;
+  players[dat[0]].x = -1000000;
+  players[dat[0]].y = -1000000;
+  players[dat[0]].r = 0;
 });
 socket.on('playerData', function (dat) {
   var found = false;
@@ -9202,9 +9215,8 @@ socket.on('playerData', function (dat) {
 
   if (!found) {
     players.push(new Player(dat.name, dat.x, dat.y, dat.r, dat.id));
-    $("body").append("<h1 class=player id=" + players.length - 1 + "></h1>");
-    $("body").append("<p class=player id=" + players.length - 1 + ">" + players[dat.id].name + "</p1>");
-    $(".player,#" + (players.length - 1).toString()).hide();
+    $("body").append("<div class=player id=" + players.length - 1 + "></div>");
+    $(".player,#" + players.length - 1).append("<p class=player id=" + players.length - 1 + ">" + players[dat.id].name + "</p>");
     $(".player,#" + (players.length - 1).toString()).hide();
   }
 });
@@ -9216,11 +9228,9 @@ socket.on('foodAdded', function (dat) {
   $("#" + dat.i).css("margin-left", (dat.x + offsetX).toString() + "px");
   $("#" + dat.i).css("margin-top", (dat.y + offsetY).toString() + "px");
   $("#" + dat.i).hide();
-  console.log('that worked bro');
 });
 socket.on('eaten', function (dat) {
   food[dat].removed = true;
-  console.log('eaten bruh');
 });
 },{"socket.io-client":"node_modules/socket.io-client/build/index.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
@@ -9250,7 +9260,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49394" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58726" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

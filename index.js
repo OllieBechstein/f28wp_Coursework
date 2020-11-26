@@ -54,7 +54,7 @@ var height = 1080
 //A value used to check if the game is on its first frame
 var first = true
 
-var playerName
+var playerName = "NO NAME"
 
 //Used for positioning the camera (offsetting the x and y of the world)
 var offsetX = 0
@@ -82,15 +82,22 @@ const boostThreshold = 3000
     foodOBJs = JSON.parse(event.target.responseText)
   }*/
 
-  //Socket.io connection setup
-  const io = require('socket.io-client');
-  const socket = io(`ws://${window.location.host}`);
-  const connectPromise = new Promise(resolve => {
-      socket.on('connect', () => {
-          console.log('Connected to server!');
-          resolve();
-      });
-  });
+
+//Socket.io connection setup
+webPreferences: {
+  nodeIntegration: true
+}
+
+import io from 'socket.io-client';
+
+
+const socket = io(`ws://${window.location.host}`);
+const connectPromise = new Promise(resolve => {
+    socket.on('connect', () => {
+        console.log('Connected to server!');
+        resolve();
+    });
+});
 
 
 //Start the game for a player
@@ -104,10 +111,11 @@ function startClient(){
   }
   //Loop for each player that should be in the game
   for (var i = 1; i < players.length; i++) {
-    //Create an element in the body of the HTML code to represent other players, with a unique id
-    $("body").append("<div class=player id=" + players[i].id.toString() + "></div>")
-    //Hide this element, using the unique ID
-    $(".player,#"+i.toString()).hide()
+      //Create an element in the body of the HTML code to represent other players, with a unique id
+      $("body").append("<div class=player id=" + players[i].id.toString() + "></div>")
+      $(".player,#" + players.length-1).append("<p class=player id=" + players[i].id.toString() + ">" + players[i].name + "</p>");
+      //Hide this element, using the unique ID
+      $(".player,#"+i.toString()).hide()
   }
   //Set the width and height to the width and height of the window
   width = $(window).width();
@@ -126,6 +134,7 @@ function createPlayer(){
   $(".mass").show()
 
   $("body").append("<div class=player id=" + client.id.toString() + "></div>")
+  $(".player,#" + client.id).append("<p>" + client.name + "</p>");
   //Hide this element, using the unique ID
   $(".player,#"+client.id.toString()).hide()
   //Add the client to the list of players, at the end of the list
@@ -150,8 +159,6 @@ function updateClient(){
       if(client.r != Math.sqrt(client.mass / Math.PI)){
         //Set it to be the correct value using a formula derived from the radius formula
         client.r = Math.sqrt(client.mass / Math.PI)
-        //Adjust the viewport scale
-        scale = playerStartRad/(client.r)
       }
       //HANDLE MOVEMENT
       //The angle of the players movement can be derived from the direction it moves in
@@ -181,7 +188,7 @@ function updateClient(){
       
       });
       function startGame(){
-        playerName = $("#name").val()
+        playerName = $("#inputName").val()
         $("#loginBox").remove()
         $("#welcome").remove()
         $("#enterName").remove()
@@ -221,31 +228,25 @@ function draw(){
         $("#"+i).hide()
       }
     }
+
+    //Loop through each player
     for(var i = 0; i < players.length; i++){
-      if(!players[i].removed){
-        //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
+        //Move where each player being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
         $(".player,#"+i).css("margin-left", (players[i].x + offsetX - players[i].r).toString()+"px");
         $(".player,#"+i).css("margin-top", (players[i].y + offsetY - players[i].r).toString()+"px");
         $(".player,#"+i).css("width", (players[i].r*2).toString()+"px");
         $(".player,#"+i).css("height", (players[i].r*2).toString()+"px");
         $(".player,#"+i).css("background-color", "darkblue")
-        //Show the player
-        $(".player,#"+i).show()
-      } else {
-        $(".player,#"+i).hide()
-      }
+        //Show the player if its in the game, otherwise remove it
+        if(players[i].removed){
+          $(".player,#"+i).hide()
+        } else {
+          $(".player,#"+i).show()
+        }
     }
 
     if(client.removed){
       displayDead()
-      document.addEventListener('keydown', function(event) {
-        //If space is being pressed
-        if (event.key === ' '){
-          players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id)
-          client = players[client.id]
-          socket.emit('respawn', client.id)
-        }
-      })
     } else {
       hideDead()
       $(".mass").text("Current Mass: " + Math.round(client.mass/100));
@@ -273,9 +274,9 @@ function hideDead(){
 
 //Handle input from the clients keyboard
 function keyInput(){
-  if(!client.removed){
+  document.addEventListener('keydown', function(event) {
+    if(!client.removed){
     //Check for a key being pressed down
-    document.addEventListener('keydown', function(event) {
       //If d is pressed
       if(event.key === 'd') {
         //Set the direction to -defaultVel, (Move right at the default velocity)
@@ -296,8 +297,16 @@ function keyInput(){
           }
         }
       }
-    })
-  }
+    } else {
+      //If space is being pressed
+      if (event.key === ' '){
+        players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id)
+        client = players[client.id]
+        client.boostToggled = true
+        socket.emit('respawn', client.id)
+      }
+    }
+  })
 
   //Check for a key being released
   document.addEventListener('keyup', function(event) {
@@ -347,18 +356,13 @@ function collision(currentFood) {
   }
 }
 
-  // Your socket id
-  socket.on('player-number', num => {
-      console.log(`your socket id is ${num}`);
-  })
-
   //Set the interval of the updateServer function to run every 16ms (approx. 60 times per second)
   setInterval(updateServer, 16)
   function updateServer() {
 
-    //sendPosition to server
+    //Send position to server
     if(wait > waitTime+10){
-      socket.emit('playerData', {name: client.name, id: client.id, x: client.x, y: client.y, r: client.r});
+      socket.emit('playerData', {name: client.name, id: client.id, x: client.x, y: client.y, r: client.r, removed: client.removed});
       socket.emit('shouldRemove')
     }
   }
@@ -368,6 +372,7 @@ function collision(currentFood) {
       food.push(new Food(foo[i].x, foo[i].y, foodRad))
     }
     for(var i in pla){
+      console.log(pla[i].name)
       players[pla[i].id] = new Player(pla[i].name, pla[i].x, pla[i].y, pla[i].r, pla[i].id)
       if(pla[i].removed){
         players[pla[i].id].removed = true
@@ -375,34 +380,40 @@ function collision(currentFood) {
     }
   })
 
-  socket.on('playerRemoved', (removed, remover) => {
-    players[removed].removed = true
-    players[remover].r += players[removed].r
-    if(removed == client.id){
+  socket.on('playerRemoved', (dat) => {
+    console.log(client.mass)
+    if(dat[0] == client.id){
       client.removed = true
-    } else if(remover == client.id){
-      client.r += players[removed].r
+    } else if(dat[1] == client.id){
+      if(!players[dat[0].removed]){
+        client.mass += players[dat[0]].r * players[dat[0]].r * Math.PI
+        console.log(client.mass)
+      }
     }
+    players[dat[0]].removed = true
+    players[dat[0]].x = -1000000
+    players[dat[0]].y = -1000000
+    players[dat[0]].r = 0
+      
   })
 
   socket.on('playerData', (dat) => {
     var found = false
     for(var i = 0; i < players.length; i++){
-      if(players[i].id == dat.id){
-        players[i].x = dat.x
-        players[i].y = dat.y
-        players[i].r = dat.r
-        players[i].removed = dat.removed
-        players[i].mass = dat.r*dat.r*Math.PI
-        found = true
+        if(players[i].id == dat.id){
+          players[i].x = dat.x
+          players[i].y = dat.y
+          players[i].r = dat.r
+          players[i].removed = dat.removed
+          players[i].mass = dat.r*dat.r*Math.PI
+          found = true
       }
     }
 
     if(!found){
       players.push(new Player(dat.name, dat.x, dat.y, dat.r, dat.id))
-      $("body").append("<h1 class=player id=" + players.length-1 + "></h1>")
-      $("body").append("<p class=player id=" + players.length-1 + ">" + players[dat.id].name + "</p1>");
-      $(".player,#"+(players.length-1).toString()).hide()
+      $("body").append("<div class=player id=" + players.length-1 + "></div>")
+      $(".player,#" + players.length-1).append("<p class=player id=" + players.length-1 + ">" + players[dat.id].name + "</p>");
       $(".player,#"+(players.length-1).toString()).hide()
     }
   })
@@ -415,10 +426,8 @@ function collision(currentFood) {
     $("#"+dat.i).css("margin-left", (dat.x + offsetX).toString()+"px");
     $("#"+dat.i).css("margin-top", (dat.y + offsetY).toString()+"px");
     $("#"+dat.i).hide()
-    console.log('that worked bro')
   })
 
     socket.on('eaten', (dat) => {
       food[dat].removed = true
-      console.log('eaten bruh')
     })
