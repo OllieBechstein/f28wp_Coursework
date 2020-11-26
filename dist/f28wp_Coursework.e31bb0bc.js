@@ -8945,7 +8945,9 @@ function createPlayer() {
 setInterval(updateClient, 16); //Update function 
 
 function updateClient() {
-  //If the game has just been launched (if its the first frame)
+  width = $(window).width();
+  height = $(window).height(); //If the game has just been launched (if its the first frame)
+
   if (wait == waitTime) {
     //Start the client
     startClient();
@@ -9015,7 +9017,7 @@ function draw() {
             $("#" + i).css("margin-top", (food[i].y + offsetY).toString() + "px"); //Show the food
 
             $("#" + i).show(); //If the food is slightly offscreen (vertically), hide it
-          } else if (food[i].y + offsetY >= -100 - foodRad && food[i].y + offsetY <= height + 100 + foodRad) {
+          } else if (food[i].y + offsetY >= -foodRad && food[i].y + offsetY <= height + foodRad) {
             $("#" + i).hide();
           } //If the food is slightly offscreen (horizontally), hide it
 
@@ -9260,7 +9262,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64465" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64374" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

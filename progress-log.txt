@@ -1,0 +1,73 @@
+1:
+    Implemented basic movement, tested with multiple inputs at once,
+    no inputs, and each individual input seperately. All worked as
+    expected.
+
+2:
+    Added mass, radius, x, y and camera controls to the player,
+    tested by outputting each variable to the console and comparing
+    against the expected output. As each variable was changed the
+    outcome was as expected.
+3:
+    Implemented boosting at the cost of mass. Taking a fraction
+    of your total mass each time you press the space bar. Had problems
+    with inputs being too close together and 'spamming' the boost function
+    but fixed it with a boolean to toggle on and off when space is
+    pressed/released.
+4:
+    Added food to the game world, randomly placed throughout the level.
+    They are removed upon collision with the player and replaced by
+    another food object with a new location. Upon being picked up they 
+    add the mass of the food object to the mass of the player. 
+5: 
+    Began work on creating a server, was able to connect the client to 
+    the server but will have to use express and socket.io to get much
+    further.
+6:
+    Now storing the level on the server using express and socket.io,
+    fixing bugs as we go, making sure we solve one problem before moving
+    on to the next thing. (Since food is no longer stored on the client
+    side of the game, it is never removed, causing the player to keep
+    growing in size while standing over it. Will fix this ASAP)
+7:
+    Fully seperated server-side and client-side code, for now commenting
+    out the server-side functions and events. Will slowly integrate them
+    over time. When a player eats a piece of food it now updates on the 
+    server and then gets confirmed back on every client in the server, 
+    stopping the infinite growing glitch.
+8:
+    Players can now see eachother, they send their x, y and unique ID to 
+    the server every 60th of a second, then the server sends that back
+    to every other player, the client handles interperating that data and
+    displaying the players. There were some problems with this, but we
+    started storing the important data for each player in an array of 
+    objects on the server as well as on the client-side and since they 
+    constantly ping eachother any issues are corrected instantly.
+9:
+    Started working on UI elements like player names and displaying the mass
+    of each player to the client. Currently names are just placeholders but
+    we will add a log-in screen closer to the deadline. 
+10:
+    Started working on player/player collision but it's not working very well,
+    currently the client is pinging the server whenever it collides with another
+    player that is smaller than it, then the server sends a response to the other
+    player to remove it, we are going to try moving all collision to the server 
+    and then just pinging the player if it needs to be removed / gain the other
+    players mass.
+11:
+    Added the log-in screen for the game. Currently it does not store the name
+    in a database and is just session based. We may work on this in the future
+    if we can but we're going to complete collision first.
+12: 
+    Managed to get collision working by doing as we thought might work. The server
+    constantly checks for collisions, then if it finds one pings every player in the
+    game, telling them that 2 players collided and to remove one of them, and make 
+    the other one larger. It took a lot of tweeking, some variables were returning
+    undefined and we didn't know why, but most of it was just typo's and forgetting
+    variable names.
+13:
+    Implemented a death screen for when a player is removed, giving them the option
+    to play again. Its very simple for now but theres little time left before the 
+    deadline so that will have to do.
+
+Total time put into the project - approx 90 hours

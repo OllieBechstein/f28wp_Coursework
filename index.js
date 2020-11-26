@@ -146,6 +146,8 @@ function createPlayer(){
 setInterval(updateClient, 16);
 //Update function 
 function updateClient(){
+  width = $(window).width();
+  height = $(window).height();
   //If the game has just been launched (if its the first frame)
   if(wait == waitTime){  
     //Start the client
@@ -217,11 +219,11 @@ function draw(){
             //Show the food
             $("#"+i).show()
           //If the food is slightly offscreen (vertically), hide it
-          } else if (food[i].y + offsetY >= -100 - foodRad && food[i].y + offsetY <= height+100 + foodRad){
+          } else if (food[i].y + offsetY >= -foodRad && food[i].y + offsetY <= height + foodRad){
             $("#"+i).hide()
           }
         //If the food is slightly offscreen (horizontally), hide it
-        } else if (food[i].x + offsetX >= -100 - foodRad && food[i].x + offsetX <= width+100 + foodRad){
+        } else if (food[i].x + offsetX >= -100-foodRad && food[i].x + offsetX <= width+100 + foodRad){
             $("#"+i).hide()
         }
       } else {
