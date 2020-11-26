@@ -1,8 +1,8 @@
 //Class for storing data about each player
 class Player {
-  //constructor takes in their x and y position, the radius of the player
+  //constructor takes in their name, x and y position, the radius of the player and unique id
   constructor(name, x, y, r, id){
-    //Set the classes x, y and radius to the values taken in from the constructor
+    //Set the classes name, x, y and radius to the values taken in from the constructor
     this.x = x
     this.y = y
     this.r = r
@@ -18,14 +18,16 @@ class Player {
     this.dir = this.vel
     //Create a variable to store the actual angle the player is facing (Using radians/degrees)
     this.ang = -1
+    //Used to find out whether the player is boosting
     this.boostToggled = false
+    //Stores whether or not the player has been removed
     this.removed = false
   }
 }
 
 //Class for storing data about each piece of food
 class Food {
-  //Construcor takes in the x and y position of the food, as well as its radius
+  //Construcor takes in the x and y position of the food, as well as its radius and stores whether or not its been removed
   constructor(x, y, r){
     this.x = x
     this.y = y
@@ -34,8 +36,11 @@ class Food {
   }
 }
 
-
+//Has the game started? (Build in delay for the player to connect to the server)
 var started = false;
+var wait = 0
+const waitTime = 10
+
 //Create an array to be used to store food objects
 var food = []
 //The radius of each food object
@@ -54,14 +59,14 @@ var height = 1080
 //A value used to check if the game is on its first frame
 var first = true
 
-let playerName = 'helo'
+//Default player name if something goes wrong inputting one
+let playerName = 'Player'
 
 //Used for positioning the camera (offsetting the x and y of the world)
 var offsetX = 0
 var offsetY = 0
-var wait = 0
-const waitTime = 10
 
+//How big the death pop-up window should be
 const deathWindowWidth = 400;
 const deathWindowHeight = 300;
 
@@ -84,12 +89,8 @@ const boostThreshold = 3000
 
 
 //Socket.io connection setup
-webPreferences: {
-  nodeIntegration: true
-}
 
 import io from 'socket.io-client';
-
 
 const socket = io(`ws://${window.location.host}`);
 const connectPromise = new Promise(resolve => {
@@ -117,7 +118,6 @@ function startClient(){
       //Hide this element, using the unique ID
       $(".player,#"+i.toString()).hide()
   }
-  console.log(playerName)
   //Set the width and height to the width and height of the window
   width = $(window).width();
   height = $(window).height();
@@ -129,8 +129,9 @@ function startClient(){
 
 //Create the client player
 function createPlayer(){
-  //Set the client to be a new player at the center of the world (0, 0) with the default radius
-  client = new Player(playerName, 0,0,playerStartRad, players.length)
+  //Set the client to be a new player at random position in the world with the default radius
+  client = new Player(playerName, random(-worldSize + 300, worldSize -300),random(-worldSize + 300, worldSize -300),playerStartRad, players.length)
+  //Set up for drawing
   $("body").append("<p class=mass>Current Mass</p>")
   $(".mass").show()
   $("body").append("<div class=player id=" + client.id + "></div>")
@@ -146,6 +147,7 @@ function createPlayer(){
 setInterval(updateClient, 16);
 //Update function 
 function updateClient(){
+  //Make sure the width and height are still accurate
   width = $(window).width();
   height = $(window).height();
   //If the game has just been launched (if its the first frame)
@@ -179,10 +181,12 @@ function updateClient(){
       } else client.vel = client.defaultVel
     }
   }
+  //Before the player enters the server
   if(started && wait < waitTime){
     wait++
   } else {
     if(wait == 0){
+      //Pressing enter on the log-in screen sets the name and starts the game
       $(document).keydown(function(event){
         if(event.key == "Enter"){
           playerName = document.getElementById("inputName").value
@@ -190,6 +194,7 @@ function updateClient(){
         }
       
       });
+      //Remove all the log-in UI and set started to true
       function startGame(){
         $("#loginBox").remove()
         $("#welcome").remove()
@@ -239,6 +244,7 @@ function draw(){
         $(".player,#"+i).css("width", (players[i].r*2).toString()+"px");
         $(".player,#"+i).css("height", (players[i].r*2).toString()+"px");
         $(".player,#"+i).css("background-color", "darkblue")
+        //Write the name below the player
         $("p,.player,#"+i).html(players[i].name).css("color", "white").css("text-align", "center");
         //Show the player if its in the game, otherwise remove it
         if(players[i].removed){
@@ -248,6 +254,7 @@ function draw(){
         }
     }
 
+    //If the client player has been removed display the dead screen, otherwise hide the dead screen
     if(client.removed){
       displayDead()
     } else {
@@ -257,6 +264,7 @@ function draw(){
   }
 }
 
+//Format the dead screen using jquery
 function buildDead(){
   $("body").append("<div class=deathScreen></div>")
   $("body").append("<h3 class=deathScreen id=deathText>PRESS SPACE TO PLAY AGAIN</h3>")
@@ -267,10 +275,12 @@ function buildDead(){
   $(".deathScreen").hide()
 }
 
+//show dead screen
 function displayDead(){
   $(".deathScreen").show()
 }
 
+//hide dead screen
 function hideDead(){
   $(".deathScreen").hide()
 }
@@ -303,8 +313,10 @@ function keyInput(){
     } else {
       //If space is being pressed
       if (event.key === ' '){
+        //Respawn the player
         players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id)
         client = players[client.id]
+        //Boost to prevent wasting mass as soon as the player spawns
         client.boostToggled = true
         socket.emit('respawn', client.id)
       }
@@ -363,17 +375,20 @@ function collision(currentFood) {
   setInterval(updateServer, 16)
   function updateServer() {
 
-    //Send position to server
     if(wait > waitTime){
+      //Send position to server
       socket.emit('playerData', {name: client.name, id: client.id, x: client.x, y: client.y, r: client.r, removed: client.removed});
+      //Ping the server to see if it should be removed
       socket.emit('shouldRemove')
     }
   }
-
+  //When it recieves level data
   socket.on('levelData', (foo, pla) => {
+    //Add all the food in the level to the list of food in the client
     for(var i = 0; i < totalFood; i++){
       food.push(new Food(foo[i].x, foo[i].y, foodRad))
     }
+    //Do the same for players
     for(var i in pla){
       players[pla[i].id] = new Player(pla[i].name, pla[i].x, pla[i].y, pla[i].r, pla[i].id)
       if(pla[i].removed){
@@ -382,6 +397,7 @@ function collision(currentFood) {
     }
   })
 
+  //If a player is removed then make sure it appears that way for the client
   socket.on('playerRemoved', (dat) => {
     console.log(client.mass)
     if(dat[0] == client.id){
@@ -399,6 +415,7 @@ function collision(currentFood) {
       
   })
 
+  //When the client recieves player data, update that player in the players array
   socket.on('playerData', (dat) => {
     var found = false
     for(var i = 0; i < players.length; i++){
@@ -412,7 +429,7 @@ function collision(currentFood) {
           found = true
       }
     }
-
+    //If it doesn't exist in the players array, its a new player and should be added
     if(!found){
       players.push(new Player(dat.name, dat.x, dat.y, dat.r, dat.id))
       $("body").append("<div class=player id=" + dat.id + "></div>")
@@ -420,6 +437,7 @@ function collision(currentFood) {
     }
   })
 
+  //When food is added, update the food array
   socket.on('foodAdded', (dat) => {
     food[dat.i].x = dat.x
     food[dat.i].y = dat.y
@@ -430,6 +448,7 @@ function collision(currentFood) {
     $("#"+dat.i).hide()
   })
 
+  //When food has been eaten, remove that piece of food
   socket.on('eaten', (dat) => {
     food[dat].removed = true
   })
