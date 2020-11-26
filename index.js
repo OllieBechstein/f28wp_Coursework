@@ -1,11 +1,12 @@
 //Class for storing data about each player
 class Player {
   //constructor takes in their x and y position, the radius of the player
-  constructor(x, y, r, id){
+  constructor(name, x, y, r, id){
     //Set the classes x, y and radius to the values taken in from the constructor
     this.x = x
     this.y = y
     this.r = r
+    this.name = name
     //Set a unique ID to be recognised by the server
     this.id = id
     //Set the default velocity of the player and the current velocity (upon creation these are the same)
@@ -53,7 +54,7 @@ var height = 1080
 //A value used to check if the game is on its first frame
 var first = true
 
-var clientName
+var playerName
 
 //Used for positioning the camera (offsetting the x and y of the world)
 var offsetX = 0
@@ -81,26 +82,38 @@ const boostThreshold = 3000
     foodOBJs = JSON.parse(event.target.responseText)
   }*/
 
+  //Socket.io connection setup
+  const io = require('socket.io-client');
+  const socket = io(`ws://${window.location.host}`);
+  const connectPromise = new Promise(resolve => {
+      socket.on('connect', () => {
+          console.log('Connected to server!');
+          resolve();
+      });
+  });
+
+
 //Start the game for a player
 function startClient(){
   //Loop for each piece of food that should be in the game
   for (var i = 0; i < food.length; i++) {
     //Create an element in the body of the HTML code to represent this piece of food, with a unique ID
-    $("body").append("<h2 class=food id=" + i.toString() + "></h2>")
+    $("body").append("<div class=food id=" + i.toString() + "></div>")
     //Hide this element, using the unique ID
     $("#"+i.toString()).hide()
   }
-  //Loop for each piece of food that should be in the game
-  for (var i = 0; i < players.length; i++) {
+  //Loop for each player that should be in the game
+  for (var i = 1; i < players.length; i++) {
     //Create an element in the body of the HTML code to represent other players, with a unique id
-    $("body").append("<h1 class=player id=" + players[i].id.toString() + "></h1>")
+    $("body").append("<div class=player id=" + players[i].id.toString() + "></div>")
     //Hide this element, using the unique ID
     $(".player,#"+i.toString()).hide()
   }
-  buildDead()
   //Set the width and height to the width and height of the window
   width = $(window).width();
   height = $(window).height();
+  //Create the screen to be shown when the player dies
+  buildDead()
   //Create the player to represent the client
   createPlayer();
 }
@@ -108,13 +121,11 @@ function startClient(){
 //Create the client player
 function createPlayer(){
   //Set the client to be a new player at the center of the world (0, 0) with the default radius
-  client = new Player(0,0,playerStartRad, players.length)
+  client = new Player(playerName, 0,0,playerStartRad, players.length)
   $("body").append("<p class=mass>Current Mass</p>")
-  $(".mass").css("margin-left", (32).toString()+"px")
-  $(".mass").css("margin-top", (32).toString()+"px")
   $(".mass").show()
 
-  $("body").append("<h1 class=player id=" + client.id.toString() + "></h1>")
+  $("body").append("<div class=player id=" + client.id.toString() + "></div>")
   //Hide this element, using the unique ID
   $(".player,#"+client.id.toString()).hide()
   //Add the client to the list of players, at the end of the list
@@ -162,31 +173,22 @@ function updateClient(){
     wait++
   } else {
     if(wait == 0){
-      $("body").append("<div id=loginBox></div>")
-      $("body").append("<h1 id=welcome>Welcome To Ski.io!</h1>")
-      $("body").append("<h2 id=enterName>Please enter your desired name below</h2>")
-      $("body").append("<input type=text id=name name=name>")
+      $("#inputName").keypress(function(event){
+        var keycode = (event.keyCode ? event.keyCode : event.which);
+        if(keycode == "13"){
+            startGame()
+          }
       
-      wait++
-    if(wait == 1){
-        $("#name").keypress(function(event){
-          var keycode = (event.keyCode ? event.keyCode : event.which);
-          if(keycode == "13"){
-              startGame()
-            }
-        
-        });
-        function startGame(){
-          $("#loginBox").remove()
-          $("#welcome").remove()
-          $("#enterName").remove()
-          $("#name").remove()
-          playerName = document.getElementById("name")
-          started = true
-        }
+      });
+      function startGame(){
+        playerName = $("#name").val()
+        $("#loginBox").remove()
+        $("#welcome").remove()
+        $("#enterName").remove()
+        $("#inputName").remove()
+        started = true
       }
     }
-    
   }
 }
 //Draw the game to the clients screen
@@ -236,6 +238,14 @@ function draw(){
 
     if(client.removed){
       displayDead()
+      document.addEventListener('keydown', function(event) {
+        //If space is being pressed
+        if (event.key === ' '){
+          players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id)
+          client = players[client.id]
+          socket.emit('respawn', client.id)
+        }
+      })
     } else {
       hideDead()
       $(".mass").text("Current Mass: " + Math.round(client.mass/100));
@@ -245,8 +255,11 @@ function draw(){
 
 function buildDead(){
   $("body").append("<div class=deathScreen></div>")
+  $("body").append("<h3 class=deathScreen id=deathText>PRESS SPACE TO PLAY AGAIN</h3>")
   $(".deathScreen").css("margin-left", (width/2 - deathWindowWidth/4).toString()+"px")
   $(".deathScreen").css("margin-top", (height/2 - deathWindowHeight).toString()+"px")
+  $("#deathText").css("margin-left", (width/2 - deathWindowWidth/4).toString()+"px")
+  $("#deathText").css("margin-top", (height/2 - deathWindowHeight).toString()+"px")
   $(".deathScreen").hide()
 }
 
@@ -334,17 +347,6 @@ function collision(currentFood) {
   }
 }
 
-  const io = require('socket.io-client');
-
-  // socket.io connection setup
-  const socket = io(`ws://${window.location.host}`);
-  const connectPromise = new Promise(resolve => {
-      socket.on('connect', () => {
-          console.log('Connected to server!');
-          resolve();
-      });
-  });
-
   // Your socket id
   socket.on('player-number', num => {
       console.log(`your socket id is ${num}`);
@@ -356,7 +358,7 @@ function collision(currentFood) {
 
     //sendPosition to server
     if(wait > waitTime+10){
-      socket.emit('playerData', {id: client.id, x: client.x, y: client.y, r: client.r});
+      socket.emit('playerData', {name: client.name, id: client.id, x: client.x, y: client.y, r: client.r});
       socket.emit('shouldRemove')
     }
   }
@@ -366,7 +368,7 @@ function collision(currentFood) {
       food.push(new Food(foo[i].x, foo[i].y, foodRad))
     }
     for(var i in pla){
-      players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id)
+      players[pla[i].id] = new Player(pla[i].name, pla[i].x, pla[i].y, pla[i].r, pla[i].id)
       if(pla[i].removed){
         players[pla[i].id].removed = true
       }
@@ -397,8 +399,10 @@ function collision(currentFood) {
     }
 
     if(!found){
-      players.push(new Player(dat.x, dat.y, dat.r, dat.id))
+      players.push(new Player(dat.name, dat.x, dat.y, dat.r, dat.id))
       $("body").append("<h1 class=player id=" + players.length-1 + "></h1>")
+      $("body").append("<p class=player id=" + players.length-1 + ">" + players[dat.id].name + "</p1>");
+      $(".player,#"+(players.length-1).toString()).hide()
       $(".player,#"+(players.length-1).toString()).hide()
     }
   })

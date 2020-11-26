@@ -8806,13 +8806,14 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 //Class for storing data about each player
 var Player = //constructor takes in their x and y position, the radius of the player
-function Player(x, y, r, id) {
+function Player(name, x, y, r, id) {
   _classCallCheck(this, Player);
 
   //Set the classes x, y and radius to the values taken in from the constructor
   this.x = x;
   this.y = y;
-  this.r = r; //Set a unique ID to be recognised by the server
+  this.r = r;
+  this.name = name; //Set a unique ID to be recognised by the server
 
   this.id = id; //Set the default velocity of the player and the current velocity (upon creation these are the same)
 
@@ -8855,7 +8856,7 @@ var width = 1920;
 var height = 1080; //A value used to check if the game is on its first frame
 
 var first = true;
-var clientName; //Used for positioning the camera (offsetting the x and y of the world)
+var playerName; //Used for positioning the camera (offsetting the x and y of the world)
 
 var offsetX = 0;
 var offsetY = 0;
@@ -8878,29 +8879,40 @@ var boostThreshold = 3000;
   function ajaxCallback(event){ 
     foodOBJs = JSON.parse(event.target.responseText)
   }*/
-//Start the game for a player
+//Socket.io connection setup
+
+var io = require('socket.io-client');
+
+var socket = io("ws://".concat(window.location.host));
+var connectPromise = new Promise(function (resolve) {
+  socket.on('connect', function () {
+    console.log('Connected to server!');
+    resolve();
+  });
+}); //Start the game for a player
 
 function startClient() {
   //Loop for each piece of food that should be in the game
   for (var i = 0; i < food.length; i++) {
     //Create an element in the body of the HTML code to represent this piece of food, with a unique ID
-    $("body").append("<h2 class=food id=" + i.toString() + "></h2>"); //Hide this element, using the unique ID
+    $("body").append("<div class=food id=" + i.toString() + "></div>"); //Hide this element, using the unique ID
 
     $("#" + i.toString()).hide();
-  } //Loop for each piece of food that should be in the game
+  } //Loop for each player that should be in the game
 
 
-  for (var i = 0; i < players.length; i++) {
+  for (var i = 1; i < players.length; i++) {
     //Create an element in the body of the HTML code to represent other players, with a unique id
-    $("body").append("<h1 class=player id=" + players[i].id.toString() + "></h1>"); //Hide this element, using the unique ID
+    $("body").append("<div class=player id=" + players[i].id.toString() + "></div>"); //Hide this element, using the unique ID
 
     $(".player,#" + i.toString()).hide();
-  }
+  } //Set the width and height to the width and height of the window
 
-  buildDead(); //Set the width and height to the width and height of the window
 
   width = $(window).width();
-  height = $(window).height(); //Create the player to represent the client
+  height = $(window).height(); //Create the screen to be shown when the player dies
+
+  buildDead(); //Create the player to represent the client
 
   createPlayer();
 } //Create the client player
@@ -8908,12 +8920,10 @@ function startClient() {
 
 function createPlayer() {
   //Set the client to be a new player at the center of the world (0, 0) with the default radius
-  client = new Player(0, 0, playerStartRad, players.length);
+  client = new Player(playerName, 0, 0, playerStartRad, players.length);
   $("body").append("<p class=mass>Current Mass</p>");
-  $(".mass").css("margin-left", 32 .toString() + "px");
-  $(".mass").css("margin-top", 32 .toString() + "px");
   $(".mass").show();
-  $("body").append("<h1 class=player id=" + client.id.toString() + "></h1>"); //Hide this element, using the unique ID
+  $("body").append("<div class=player id=" + client.id.toString() + "></div>"); //Hide this element, using the unique ID
 
   $(".player,#" + client.id.toString()).hide(); //Add the client to the list of players, at the end of the list
 
@@ -8959,30 +8969,22 @@ function updateClient() {
     wait++;
   } else {
     if (wait == 0) {
-      $("body").append("<div id=loginBox></div>");
-      $("body").append("<h1 id=welcome>Welcome To Ski.io!</h1>");
-      $("body").append("<h2 id=enterName>Please enter your desired name below</h2>");
-      $("body").append("<input type=text id=name name=name>");
-      wait++;
+      var startGame = function startGame() {
+        playerName = $("#name").val();
+        $("#loginBox").remove();
+        $("#welcome").remove();
+        $("#enterName").remove();
+        $("#inputName").remove();
+        started = true;
+      };
 
-      if (wait == 1) {
-        var startGame = function startGame() {
-          $("#loginBox").remove();
-          $("#welcome").remove();
-          $("#enterName").remove();
-          $("#name").remove();
-          playerName = document.getElementById("name");
-          started = true;
-        };
+      $("#inputName").keypress(function (event) {
+        var keycode = event.keyCode ? event.keyCode : event.which;
 
-        $("#name").keypress(function (event) {
-          var keycode = event.keyCode ? event.keyCode : event.which;
-
-          if (keycode == "13") {
-            startGame();
-          }
-        });
-      }
+        if (keycode == "13") {
+          startGame();
+        }
+      });
     }
   }
 } //Draw the game to the clients screen
@@ -9034,6 +9036,14 @@ function draw() {
 
     if (client.removed) {
       displayDead();
+      document.addEventListener('keydown', function (event) {
+        //If space is being pressed
+        if (event.key === ' ') {
+          players[client.id] = new Player(playerName, 0, 0, playerStartRad, client.id);
+          client = players[client.id];
+          socket.emit('respawn', client.id);
+        }
+      });
     } else {
       hideDead();
       $(".mass").text("Current Mass: " + Math.round(client.mass / 100));
@@ -9043,8 +9053,11 @@ function draw() {
 
 function buildDead() {
   $("body").append("<div class=deathScreen></div>");
+  $("body").append("<h3 class=deathScreen id=deathText>PRESS SPACE TO PLAY AGAIN</h3>");
   $(".deathScreen").css("margin-left", (width / 2 - deathWindowWidth / 4).toString() + "px");
   $(".deathScreen").css("margin-top", (height / 2 - deathWindowHeight).toString() + "px");
+  $("#deathText").css("margin-left", (width / 2 - deathWindowWidth / 4).toString() + "px");
+  $("#deathText").css("margin-top", (height / 2 - deathWindowHeight).toString() + "px");
   $(".deathScreen").hide();
 }
 
@@ -9127,18 +9140,8 @@ function collision(currentFood) {
       client.mass += foodMass;
     }
   }
-}
+} // Your socket id
 
-var io = require('socket.io-client'); // socket.io connection setup
-
-
-var socket = io("ws://".concat(window.location.host));
-var connectPromise = new Promise(function (resolve) {
-  socket.on('connect', function () {
-    console.log('Connected to server!');
-    resolve();
-  });
-}); // Your socket id
 
 socket.on('player-number', function (num) {
   console.log("your socket id is ".concat(num));
@@ -9150,6 +9153,7 @@ function updateServer() {
   //sendPosition to server
   if (wait > waitTime + 10) {
     socket.emit('playerData', {
+      name: client.name,
       id: client.id,
       x: client.x,
       y: client.y,
@@ -9165,7 +9169,7 @@ socket.on('levelData', function (foo, pla) {
   }
 
   for (var i in pla) {
-    players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id);
+    players[pla[i].id] = new Player(pla[i].name, pla[i].x, pla[i].y, pla[i].r, pla[i].id);
 
     if (pla[i].removed) {
       players[pla[i].id].removed = true;
@@ -9197,8 +9201,10 @@ socket.on('playerData', function (dat) {
   }
 
   if (!found) {
-    players.push(new Player(dat.x, dat.y, dat.r, dat.id));
+    players.push(new Player(dat.name, dat.x, dat.y, dat.r, dat.id));
     $("body").append("<h1 class=player id=" + players.length - 1 + "></h1>");
+    $("body").append("<p class=player id=" + players.length - 1 + ">" + players[dat.id].name + "</p1>");
+    $(".player,#" + (players.length - 1).toString()).hide();
     $(".player,#" + (players.length - 1).toString()).hide();
   }
 });
@@ -9244,7 +9250,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "63533" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49394" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

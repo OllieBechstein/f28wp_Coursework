@@ -46,16 +46,20 @@ io.on('connection', (socket) => {
         socket.emit('foodAdded', {i: i, x: x, y: y})
     })
 
+    socket.on('respawn', (id) => {
+        players[id].removed = false
+    })
+
     socket.on('playerData', (dat) => {
         
         if(players.length > dat.id){
             players[dat.id].x = dat.x
             players[dat.id].y = dat.y
             players[dat.id].r = dat.r
-            socket.broadcast.emit('playerData', {x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: players[dat.id].removed})
+            socket.broadcast.emit('playerData', {name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: players[dat.id].removed})
         } else {
-            players.push({x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: dat.removed, socket: socket.id})
-            socket.broadcast.emit('playerData', {x: dat.x, y: dat.y, r: dat.r, id: dat.id})
+            players.push({name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: dat.removed, socket: socket.id})
+            socket.broadcast.emit('playerData', {name: dat.name, x: dat.x, y: dat.y, r: dat.r, id: dat.id})
         }
         
     })
@@ -67,11 +71,14 @@ io.on('connection', (socket) => {
                   
                     if(dist < players[j].r - players[i].r + (players[j].r/10)){
                         if(players[j].r > players[i].r){
-                            console.log('working!')
                             players[i].removed = true
+                            players[i].x = -1000000
+                            players[i].y = -1000000
                             socket.emit('playerRemoved', (j, i))
                         } else if(players[j].r < players[i].r){
                             players[j].removed = true
+                            players[j].x = -1000000
+                            players[j].y = -1000000
                             socket.emit('playerRemoved', (i, j))
                             players[j].vel = 0
                         }
