@@ -341,9 +341,7 @@ socket.on('levelData', (foo, pla) => {
 
 socket.on('playerRemoved', (removed, remover) => {
   players[removed].removed = true
-  console.log(removed)
-  console.log(client.id)
-  //players[remover].r += players[removed].r
+  players[remover].r += players[removed].r
   if(removed == client.id){
     client.removed = true
   } else if(remover == client.id){

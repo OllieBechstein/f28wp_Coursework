@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
     socket.on('shouldRemove', () => {
         for(var i = 0; i < players.length; i++){
             for(var j = 0; j < players.length; j++){
-                if(players[i] != players[j]){
+                if(players[i] != players[j] && (!players[i].removed || !players[j].removed)){
                     var dist = Math.sqrt((players[i].x - players[j].x)*(players[i].x - players[j].x) + (players[i].y-players[j].y)*(players[i].y-players[j].y))
                   
                     if(dist < players[j].r - players[i].r + (players[j].r/10)){

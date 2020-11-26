@@ -9144,8 +9144,7 @@ socket.on('levelData', function (foo, pla) {
 });
 socket.on('playerRemoved', function (removed, remover) {
   players[removed].removed = true;
-  console.log(removed);
-  console.log(client.id); //players[remover].r += players[removed].r
+  players[remover].r += players[removed].r;
 
   if (removed == client.id) {
     client.removed = true;
@@ -9215,7 +9214,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61838" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61931" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
