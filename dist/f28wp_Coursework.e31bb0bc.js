@@ -9168,11 +9168,13 @@ socket.on('playerData', function (dat) {
   }
 });
 socket.on('foodAdded', function (dat) {
-  food[dat.i].removed = false;
   food[dat.i].x = dat.x;
   food[dat.i].y = dat.y;
+  food[dat.i].removed = false; //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
+
   $("#" + dat.i).css("margin-left", (dat.x + offsetX).toString() + "px");
-  $("#" + dat.i).css("margin-top", (dat.x + offsetX).toString() + "px");
+  $("#" + dat.i).css("margin-top", (dat.y + offsetY).toString() + "px");
+  $("#" + dat.i).hide();
   console.log('that worked bro');
 });
 socket.on('eaten', function (dat) {
@@ -9207,7 +9209,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60818" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61090" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
