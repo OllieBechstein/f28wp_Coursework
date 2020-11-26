@@ -1,3 +1,4 @@
+const { Console } = require('console');
 const Bundler = require('parcel-bundler');
 const app = require('express')();
 const server = require('http').createServer(app);
@@ -25,18 +26,24 @@ server.listen(port, () => {
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected: ' + socket.id);
-    //clients[socket.id] = socket;
+    console.log('User connected: ' + socket.id)
+    //for(var i = 0; i < players.length; i++){
+        //if(players[i].socket == socket.id){
+            //Console.log("Player " + socket.id + " rejoined!")
+        //    
+        //}
+    //}
+    //clients[socket.id] = socket
 
-    socket.emit('levelData', food)
+    socket.emit('levelData', food, players)
     // Receive player positions and type
     
     socket.on('eaten', (i) => {
         var x = random(-worldSize, worldSize)
         var y = random(-worldSize, worldSize)
         food[i] = {x: x, y: y}
-        socket.broadcast.emit('eaten', i);
-        socket.emit('foodAdded', {i: i, x: x, y: y});
+        socket.broadcast.emit('eaten', i)
+        socket.emit('foodAdded', {i: i, x: x, y: y})
     })
 
     socket.on('playerData', (dat) => {
@@ -52,7 +59,6 @@ io.on('connection', (socket) => {
         }
         
     })
-
     socket.on('shouldRemove', () => {
         for(var i = 0; i < players.length; i++){
             for(var j = 0; j < players.length; j++){
@@ -78,8 +84,8 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log(socket.id + ' left the server');
         for(var i = 0; i < players.length; i++){
-            if(players[i].socket = socket.id){
-                socket.broadcast.emit('playerRemoved', (i, i))
+            if(players[i].socket == socket.id){
+                players[i].removed = true
             }
         }
     });

@@ -61,3 +61,27 @@ body{
     z-index: 100;
     opacity: 0.5;
 }
+
+.loginBox{
+    margin-left: 30%;
+    margin-top: 10%;
+    width: 40%;
+    height: 20%;
+    border-radius: 50%;
+    display:inline-block;
+    background: darkcyan;
+}
+
+
+.welcome{
+    text-align: center;
+}
+.enterName{
+    text-align: center;
+}
+.name{
+    font-size: 24px;
+    margin-top: 6px;
+    margin-left: 25%;
+    width: 50%;
+}

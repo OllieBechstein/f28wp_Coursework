@@ -8837,8 +8837,9 @@ function Food(x, y, r) {
   this.y = y;
   this.r = r;
   this.removed = false;
-}; //Create an array to be used to store food objects
+};
 
+var started = false; //Create an array to be used to store food objects
 
 var food = []; //The radius of each food object
 
@@ -8853,7 +8854,8 @@ var totalFood = 4000; //The width and height of the game screen (1920 and 1080 a
 var width = 1920;
 var height = 1080; //A value used to check if the game is on its first frame
 
-var first = true; //Used for positioning the camera (offsetting the x and y of the world)
+var first = true;
+var clientName; //Used for positioning the camera (offsetting the x and y of the world)
 
 var offsetX = 0;
 var offsetY = 0;
@@ -8953,7 +8955,36 @@ function updateClient() {
     }
   }
 
-  wait++;
+  if (started) {
+    wait++;
+  } else {
+    if (wait == 0) {
+      $("body").append("<div id=loginBox></div>");
+      $("body").append("<h1 id=welcome>Welcome To Ski.io!</h1>");
+      $("body").append("<h2 id=enterName>Please enter your desired name below</h2>");
+      $("body").append("<input type=text id=name name=name>");
+      wait++;
+
+      if (wait == 1) {
+        var startGame = function startGame() {
+          $("#loginBox").remove();
+          $("#welcome").remove();
+          $("#enterName").remove();
+          $("#name").remove();
+          playerName = document.getElementById("name");
+          started = true;
+        };
+
+        $("#name").keypress(function (event) {
+          var keycode = event.keyCode ? event.keyCode : event.which;
+
+          if (keycode == "13") {
+            startGame();
+          }
+        });
+      }
+    }
+  }
 } //Draw the game to the clients screen
 
 
@@ -9051,13 +9082,8 @@ function keyInput() {
         }
       }
     });
-  }
+  } //Check for a key being released
 
-  window.addEventListener("wheel", function (e) {
-    e.preventDefault();
-  }, {
-    passive: false
-  }); //Check for a key being released
 
   document.addEventListener('keyup', function (event) {
     //If space has been released
@@ -9140,6 +9166,10 @@ socket.on('levelData', function (foo, pla) {
 
   for (var i in pla) {
     players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id);
+
+    if (pla[i].removed) {
+      players[pla[i].id].removed = true;
+    }
   }
 });
 socket.on('playerRemoved', function (removed, remover) {
@@ -9214,7 +9244,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61931" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "63533" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

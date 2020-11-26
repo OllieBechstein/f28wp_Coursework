@@ -33,6 +33,8 @@ class Food {
   }
 }
 
+
+var started = false;
 //Create an array to be used to store food objects
 var food = []
 //The radius of each food object
@@ -50,6 +52,8 @@ var width = 1920
 var height = 1080
 //A value used to check if the game is on its first frame
 var first = true
+
+var clientName
 
 //Used for positioning the camera (offsetting the x and y of the world)
 var offsetX = 0
@@ -154,7 +158,36 @@ function updateClient(){
       } else client.vel = client.defaultVel
     }
   }
-  wait++
+  if(started){
+    wait++
+  } else {
+    if(wait == 0){
+      $("body").append("<div id=loginBox></div>")
+      $("body").append("<h1 id=welcome>Welcome To Ski.io!</h1>")
+      $("body").append("<h2 id=enterName>Please enter your desired name below</h2>")
+      $("body").append("<input type=text id=name name=name>")
+      
+      wait++
+    if(wait == 1){
+        $("#name").keypress(function(event){
+          var keycode = (event.keyCode ? event.keyCode : event.which);
+          if(keycode == "13"){
+              startGame()
+            }
+        
+        });
+        function startGame(){
+          $("#loginBox").remove()
+          $("#welcome").remove()
+          $("#enterName").remove()
+          $("#name").remove()
+          playerName = document.getElementById("name")
+          started = true
+        }
+      }
+    }
+    
+  }
 }
 //Draw the game to the clients screen
 function draw(){
@@ -252,7 +285,7 @@ function keyInput(){
       }
     })
   }
-  window.addEventListener("wheel", function(e){e.preventDefault();}, {passive: false} );
+
   //Check for a key being released
   document.addEventListener('keyup', function(event) {
     //If space has been released
@@ -300,87 +333,88 @@ function collision(currentFood) {
     }
   }
 }
-  
 
+  const io = require('socket.io-client');
 
-const io = require('socket.io-client');
+  // socket.io connection setup
+  const socket = io(`ws://${window.location.host}`);
+  const connectPromise = new Promise(resolve => {
+      socket.on('connect', () => {
+          console.log('Connected to server!');
+          resolve();
+      });
+  });
 
-// socket.io connection setup
-const socket = io(`ws://${window.location.host}`);
-const connectPromise = new Promise(resolve => {
-    socket.on('connect', () => {
-        console.log('Connected to server!');
-        resolve();
-    });
-});
+  // Your socket id
+  socket.on('player-number', num => {
+      console.log(`your socket id is ${num}`);
+  })
 
-// Your socket id
-socket.on('player-number', num => {
-    console.log(`your socket id is ${num}`);
-})
+  //Set the interval of the updateServer function to run every 16ms (approx. 60 times per second)
+  setInterval(updateServer, 16)
+  function updateServer() {
 
-//Set the interval of the updateServer function to run every 16ms (approx. 60 times per second)
-setInterval(updateServer, 16)
-function updateServer() {
-
-  //sendPosition to server
-  if(wait > waitTime+10){
-    socket.emit('playerData', {id: client.id, x: client.x, y: client.y, r: client.r});
-    socket.emit('shouldRemove')
-  }
-}
-
-socket.on('levelData', (foo, pla) => {
-  for(var i = 0; i < totalFood; i++){
-    food.push(new Food(foo[i].x, foo[i].y, foodRad))
-  }
-  for(var i in pla){
-    players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id)
-  }
-})
-
-socket.on('playerRemoved', (removed, remover) => {
-  players[removed].removed = true
-  players[remover].r += players[removed].r
-  if(removed == client.id){
-    client.removed = true
-  } else if(remover == client.id){
-    client.r += players[removed].r
-  }
-})
-
-socket.on('playerData', (dat) => {
-  var found = false
-  for(var i = 0; i < players.length; i++){
-    if(players[i].id == dat.id){
-      players[i].x = dat.x
-      players[i].y = dat.y
-      players[i].r = dat.r
-      players[i].removed = dat.removed
-      players[i].mass = dat.r*dat.r*Math.PI
-      found = true
+    //sendPosition to server
+    if(wait > waitTime+10){
+      socket.emit('playerData', {id: client.id, x: client.x, y: client.y, r: client.r});
+      socket.emit('shouldRemove')
     }
   }
 
-  if(!found){
-    players.push(new Player(dat.x, dat.y, dat.r, dat.id))
-    $("body").append("<h1 class=player id=" + players.length-1 + "></h1>")
-    $(".player,#"+(players.length-1).toString()).hide()
-  }
-})
-
-socket.on('foodAdded', (dat) => {
-  food[dat.i].x = dat.x
-  food[dat.i].y = dat.y
-  food[dat.i].removed = false
-  //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
-  $("#"+dat.i).css("margin-left", (dat.x + offsetX).toString()+"px");
-  $("#"+dat.i).css("margin-top", (dat.y + offsetY).toString()+"px");
-  $("#"+dat.i).hide()
-  console.log('that worked bro')
-})
-
-  socket.on('eaten', (dat) => {
-    food[dat].removed = true
-    console.log('eaten bruh')
+  socket.on('levelData', (foo, pla) => {
+    for(var i = 0; i < totalFood; i++){
+      food.push(new Food(foo[i].x, foo[i].y, foodRad))
+    }
+    for(var i in pla){
+      players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id)
+      if(pla[i].removed){
+        players[pla[i].id].removed = true
+      }
+    }
   })
+
+  socket.on('playerRemoved', (removed, remover) => {
+    players[removed].removed = true
+    players[remover].r += players[removed].r
+    if(removed == client.id){
+      client.removed = true
+    } else if(remover == client.id){
+      client.r += players[removed].r
+    }
+  })
+
+  socket.on('playerData', (dat) => {
+    var found = false
+    for(var i = 0; i < players.length; i++){
+      if(players[i].id == dat.id){
+        players[i].x = dat.x
+        players[i].y = dat.y
+        players[i].r = dat.r
+        players[i].removed = dat.removed
+        players[i].mass = dat.r*dat.r*Math.PI
+        found = true
+      }
+    }
+
+    if(!found){
+      players.push(new Player(dat.x, dat.y, dat.r, dat.id))
+      $("body").append("<h1 class=player id=" + players.length-1 + "></h1>")
+      $(".player,#"+(players.length-1).toString()).hide()
+    }
+  })
+
+  socket.on('foodAdded', (dat) => {
+    food[dat.i].x = dat.x
+    food[dat.i].y = dat.y
+    food[dat.i].removed = false
+    //Move where its being drawn on the screen to correspond with its position in the viewport (Again using CSS's margin as the offset)
+    $("#"+dat.i).css("margin-left", (dat.x + offsetX).toString()+"px");
+    $("#"+dat.i).css("margin-top", (dat.y + offsetY).toString()+"px");
+    $("#"+dat.i).hide()
+    console.log('that worked bro')
+  })
+
+    socket.on('eaten', (dat) => {
+      food[dat].removed = true
+      console.log('eaten bruh')
+    })
