@@ -59,6 +59,7 @@ body{
     position: absolute;
     display: inline-block;
     z-index: 100;
+    opacity: 0.5;
 }
 
 /*# sourceMappingURL=/style.e308ff8e.css.map */

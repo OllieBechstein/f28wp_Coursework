@@ -27,11 +27,6 @@ server.listen(port, () => {
 io.on('connection', (socket) => {
     console.log('User connected: ' + socket.id);
     //clients[socket.id] = socket;
-    socket.on('disconnect', (id) => {
-        console.log(socket.id + ' left the server');
-        
-    });
-    
 
     socket.emit('levelData', food)
     // Receive player positions and type
@@ -52,32 +47,42 @@ io.on('connection', (socket) => {
             players[dat.id].r = dat.r
             socket.broadcast.emit('playerData', {x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: players[dat.id].removed})
         } else {
-            players.push({x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: dat.removed})
+            players.push({x: dat.x, y: dat.y, r: dat.r, id: dat.id, removed: dat.removed, socket: socket.id})
             socket.broadcast.emit('playerData', {x: dat.x, y: dat.y, r: dat.r, id: dat.id})
         }
+        
+    })
 
+    socket.on('shouldRemove', () => {
         for(var i = 0; i < players.length; i++){
             for(var j = 0; j < players.length; j++){
-                if(players[i] != players[j] && !players[i].removed && !players[j].removed){
+                if(players[i] != players[j]){
                     var dist = Math.sqrt((players[i].x - players[j].x)*(players[i].x - players[j].x) + (players[i].y-players[j].y)*(players[i].y-players[j].y))
                   
                     if(dist < players[j].r - players[i].r + (players[j].r/10)){
                         if(players[j].r > players[i].r){
                             console.log('working!')
                             players[i].removed = true
-                            socket.emit('playerRemoved', (i, j))
+                            socket.emit('playerRemoved', (j, i))
                         } else if(players[j].r < players[i].r){
                             players[j].removed = true
-                            socket.emit('playerRemoved', (j, i))
+                            socket.emit('playerRemoved', (i, j))
                             players[j].vel = 0
                         }
                     }
                 }
             }
         }
-        
     })
-
+ 
+    socket.on('disconnect', () => {
+        console.log(socket.id + ' left the server');
+        for(var i = 0; i < players.length; i++){
+            if(players[i].socket = socket.id){
+                socket.broadcast.emit('playerRemoved', (i, i))
+            }
+        }
+    });
     
 })
 

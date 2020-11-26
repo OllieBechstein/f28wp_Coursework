@@ -9051,8 +9051,13 @@ function keyInput() {
         }
       }
     });
-  } else {} //Check for a key being released
+  }
 
+  window.addEventListener("wheel", function (e) {
+    e.preventDefault();
+  }, {
+    passive: false
+  }); //Check for a key being released
 
   document.addEventListener('keyup', function (event) {
     //If space has been released
@@ -9098,8 +9103,7 @@ function collision(currentFood) {
   }
 }
 
-var io = require('socket.io-client'); //format for sent data {id: 0, x: 0, y: 0, r: 0}
-// socket.io connection setup
+var io = require('socket.io-client'); // socket.io connection setup
 
 
 var socket = io("ws://".concat(window.location.host));
@@ -9125,6 +9129,7 @@ function updateServer() {
       y: client.y,
       r: client.r
     });
+    socket.emit('shouldRemove');
   }
 }
 
@@ -9138,10 +9143,11 @@ socket.on('levelData', function (foo, pla) {
   }
 });
 socket.on('playerRemoved', function (removed, remover) {
-  players[removed].removed = true; //players[remover].r += players[removed].r
+  players[removed].removed = true;
+  console.log(removed);
+  console.log(client.id); //players[remover].r += players[removed].r
 
   if (removed == client.id) {
-    console.log('REMOVED FROM GAME');
     client.removed = true;
   } else if (remover == client.id) {
     client.r += players[removed].r;
@@ -9209,7 +9215,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61090" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61838" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
