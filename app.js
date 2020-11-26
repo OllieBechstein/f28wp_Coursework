@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
         var y = random(-worldSize, worldSize)
         food[i] = {x: x, y: y}
         socket.broadcast.emit('eaten', i);
-        //socket.emit('foodAdded', ({i: i, x: x, y: y}));
+        socket.emit('foodAdded', {i: i, x: x, y: y});
     })
 
     socket.on('playerData', (dat) => {
@@ -65,11 +65,10 @@ io.on('connection', (socket) => {
                         if(players[j].r > players[i].r){
                             console.log('working!')
                             players[i].removed = true
-                            players[j].r += players[i].r/Math.PI
-                            socket.emit('playerRemoved', i)
+                            socket.emit('playerRemoved', (i, j))
                         } else if(players[j].r < players[i].r){
                             players[j].removed = true
-                            socket.emit('playerRemoved', j)
+                            socket.emit('playerRemoved', (j, i))
                             players[j].vel = 0
                         }
                     }

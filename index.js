@@ -55,10 +55,10 @@ var first = true
 var offsetX = 0
 var offsetY = 0
 var wait = 0
-var waitTime = 10
+const waitTime = 10
 
-//Used for zooming the camera out as the player gets larger
-var scale = 1
+const deathWindowWidth = 400;
+const deathWindowHeight = 300;
 
 //Creates an array to store each player on the server
 var players = []
@@ -93,6 +93,7 @@ function startClient(){
     //Hide this element, using the unique ID
     $(".player,#"+i.toString()).hide()
   }
+  buildDead()
   //Set the width and height to the width and height of the window
   width = $(window).width();
   height = $(window).height();
@@ -210,15 +211,18 @@ function draw(){
 }
 
 function buildDead(){
-
+  $("body").append("<div class=deathScreen></div>")
+  $(".deathScreen").css("margin-left", (width/2 - deathWindowWidth/4).toString()+"px")
+  $(".deathScreen").css("margin-top", (height/2 - deathWindowHeight).toString()+"px")
+  $(".deathScreen").hide()
 }
 
 function displayDead(){
-
+  $(".deathScreen").show()
 }
 
 function hideDead(){
-
+  $(".deathScreen").hide()
 }
 
 //Handle input from the clients keyboard
@@ -335,11 +339,14 @@ socket.on('levelData', (foo, pla) => {
   }
 })
 
-socket.on('playerRemoved', (id) => {
-  players[id].removed = true
-  if(id == client.id){
+socket.on('playerRemoved', (removed, remover) => {
+  players[removed].removed = true
+  //players[remover].r += players[removed].r
+  if(removed == client.id){
     console.log('REMOVED FROM GAME')
     client.removed = true
+  } else if(remover == client.id){
+    client.r += players[removed].r
   }
 })
 
@@ -363,13 +370,14 @@ socket.on('playerData', (dat) => {
   }
 })
 
-if(wait > waitTime){
-  socket.on('foodAdded', (dat) => {
-    food[dat.id].removed = false
-    food[dat.id].x = dat.x
-    food[dat.id].y = dat.y
-  })
-}
+socket.on('foodAdded', (dat) => {
+  food[dat.i].removed = false
+  food[dat.i].x = dat.x
+  food[dat.i].y = dat.y
+  $("#"+dat.i).css("margin-left", (dat.x + offsetX).toString()+"px");
+  $("#"+dat.i).css("margin-top", (dat.x + offsetX).toString()+"px");
+  console.log('that worked bro')
+})
 
   socket.on('eaten', (dat) => {
     food[dat].removed = true

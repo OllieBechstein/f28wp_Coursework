@@ -5,6 +5,7 @@ body{
     margin: 0px;
     margin-top: -16px;
     margin-left: -16px;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .player {
@@ -16,7 +17,7 @@ body{
     margin: 0px;
     display: inline-block;
     position: absolute;
-    
+    z-index: 2;
 }
 
 .food {
@@ -28,6 +29,7 @@ body{
     margin: 0px;
     position: absolute;
     display: inline-block;
+    z-index: 1;
     
 }
 
@@ -36,6 +38,7 @@ body{
   border-width: 0 3px 3px 0;
   display: inline-block;
   padding: 3px;
+  z-index: 99;
 }
 
 .mass {
@@ -44,11 +47,18 @@ body{
     margin: 0px;
     position: absolute;
     display: inline-block;
+    z-index: 99;
 }
 
 .deathScreen {
-    width: 200px;
-    height: 200px;
+    background-color: rgb(101, 167, 189);
+    border-radius: 3%;
+    width: 400px;
+    height: 300px;
+    font-size: 32px;
+    position: absolute;
+    display: inline-block;
+    z-index: 100;
 }
 
 /*# sourceMappingURL=/style.e308ff8e.css.map */

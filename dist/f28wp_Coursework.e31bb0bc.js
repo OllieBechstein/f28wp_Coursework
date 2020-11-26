@@ -8858,9 +8858,9 @@ var first = true; //Used for positioning the camera (offsetting the x and y of t
 var offsetX = 0;
 var offsetY = 0;
 var wait = 0;
-var waitTime = 10; //Used for zooming the camera out as the player gets larger
-
-var scale = 1; //Creates an array to store each player on the server
+var waitTime = 10;
+var deathWindowWidth = 400;
+var deathWindowHeight = 300; //Creates an array to store each player on the server
 
 var players = []; //Used to hold and update the client player
 
@@ -8893,8 +8893,9 @@ function startClient() {
     $("body").append("<h1 class=player id=" + players[i].id.toString() + "></h1>"); //Hide this element, using the unique ID
 
     $(".player,#" + i.toString()).hide();
-  } //Set the width and height to the width and height of the window
+  }
 
+  buildDead(); //Set the width and height to the width and height of the window
 
   width = $(window).width();
   height = $(window).height(); //Create the player to represent the client
@@ -9009,11 +9010,20 @@ function draw() {
   }
 }
 
-function buildDead() {}
+function buildDead() {
+  $("body").append("<div class=deathScreen></div>");
+  $(".deathScreen").css("margin-left", (width / 2 - deathWindowWidth / 4).toString() + "px");
+  $(".deathScreen").css("margin-top", (height / 2 - deathWindowHeight).toString() + "px");
+  $(".deathScreen").hide();
+}
 
-function displayDead() {}
+function displayDead() {
+  $(".deathScreen").show();
+}
 
-function hideDead() {} //Handle input from the clients keyboard
+function hideDead() {
+  $(".deathScreen").hide();
+} //Handle input from the clients keyboard
 
 
 function keyInput() {
@@ -9127,12 +9137,14 @@ socket.on('levelData', function (foo, pla) {
     players[pla[i].id] = new Player(pla[i].x, pla[i].y, pla[i].r, pla[i].id);
   }
 });
-socket.on('playerRemoved', function (id) {
-  players[id].removed = true;
+socket.on('playerRemoved', function (removed, remover) {
+  players[removed].removed = true; //players[remover].r += players[removed].r
 
-  if (id == client.id) {
+  if (removed == client.id) {
     console.log('REMOVED FROM GAME');
     client.removed = true;
+  } else if (remover == client.id) {
+    client.r += players[removed].r;
   }
 });
 socket.on('playerData', function (dat) {
@@ -9155,15 +9167,14 @@ socket.on('playerData', function (dat) {
     $(".player,#" + (players.length - 1).toString()).hide();
   }
 });
-
-if (wait > waitTime) {
-  socket.on('foodAdded', function (dat) {
-    food[dat.id].removed = false;
-    food[dat.id].x = dat.x;
-    food[dat.id].y = dat.y;
-  });
-}
-
+socket.on('foodAdded', function (dat) {
+  food[dat.i].removed = false;
+  food[dat.i].x = dat.x;
+  food[dat.i].y = dat.y;
+  $("#" + dat.i).css("margin-left", (dat.x + offsetX).toString() + "px");
+  $("#" + dat.i).css("margin-top", (dat.x + offsetX).toString() + "px");
+  console.log('that worked bro');
+});
 socket.on('eaten', function (dat) {
   food[dat].removed = true;
   console.log('eaten bruh');
@@ -9196,7 +9207,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59923" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60818" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

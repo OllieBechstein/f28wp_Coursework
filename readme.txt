@@ -14,7 +14,7 @@ Controls:
     Space - Boost
 
 Recommendations:
-    We recommend you play the game with your browser size set to 80%. The game will 
+    We recommend you play the game with your browser size set to 90%. The game will 
     work at any (reasonable) zoom percentage, but we've found this to be the ideal setting.
 
 Disclaimer:
