@@ -1,9 +1,11 @@
 Authors: Louis Braidwood, Tom Mitchell, Ollie Bechstein
 
 npm installs:
-npm install socket.io
-npm install parcel-bundler
-npm install express
+    npm install parcel-bundler
+
+(potentially required but shouldn't be): 
+    npm install express
+    npm install socket.io
 
 Description: 
     Ski.io is an online multiplayer game where the objective is to 
