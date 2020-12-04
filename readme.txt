@@ -1,5 +1,10 @@
 Authors: Louis Braidwood, Tom Mitchell, Ollie Bechstein
 
+npm installs:
+npm install socket.io
+npm install parcel-bundler
+npm install express
+
 Description: 
     Ski.io is an online multiplayer game where the objective is to 
     move (skii) around the level, collecting balls of mass, making you bigger as 
